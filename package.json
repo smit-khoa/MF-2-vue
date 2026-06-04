@@ -1,0 +1,24 @@
+{
+  "name": "smit-client-vue",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SMIT Agency micro-frontend client (Vue 3 + Module Federation 2.0 + Rspack)",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter './apps/*' run dev",
+    "dev:shell": "pnpm --filter @mf2/shell dev",
+    "dev:home": "pnpm --filter @mf2/home dev",
+    "dev:ads-asset": "pnpm --filter @mf2/ads-asset dev",
+    "build": "turbo run build --filter='./apps/*'",
+    "preview": "pnpm -r --parallel --filter './apps/*' run preview",
+    "typecheck": "turbo run typecheck",
+    "clean": "pnpm -r exec rm -rf dist node_modules/.cache @mf-types"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.16",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,55 @@
+# CI gate — keeps `main` green. Only typechecks/builds apps affected by the PR.
+# Reference implementation for GitHub Actions; port to .gitlab-ci.yml if hosting on GitLab.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # cancel stale PR runs, but never cancel a post-merge verification on main
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # full history so `--filter=...[origin/main]` can diff against the base
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # cache Turbo's local task outputs across runs.
+      # key on lockfile (not github.sha, which is unique per commit → never primary-hits)
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      # PR: affected-only — changed packages + every app that depends on them (the `...` prefix).
+      # A breaking change in packages/shared-* fans out to all dependent apps here.
+      - name: Typecheck + build affected (PR)
+        if: github.event_name == 'pull_request'
+        run: pnpm turbo run typecheck build --filter=...[origin/main]
+
+      # push to main: full verification — `...[origin/main]` would diff main against itself
+      # (empty change set → zero tasks → no-op gate). Run everything to truly keep main green.
+      - name: Typecheck + build all (push to main)
+        if: github.event_name == 'push'
+        run: pnpm turbo run typecheck build
