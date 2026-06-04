@@ -1,0 +1,1 @@
+- [MF Remote Naming](mf-remote-naming.md) — single source of truth for remote MF name/key/url wiring + the underscore-vs-hyphen footgun

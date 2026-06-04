@@ -1,27 +1,19 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuthStore, useLayoutStore } from '@mf2/shared-store';
+import { useLayoutStore } from '@mf2/shared-store';
 import { Icon, type IconName } from '@mf2/shared-ui';
 
 interface NavItem {
   label: string;
   path: string;
   iconName: IconName;
-  roles?: string[];
-  feature?: string;
 }
 
-// Chỉ wire 2 remote hiện có (home, ads-asset). Các module khác chưa thuộc phạm vi.
+// Wire 2 remote: Quản lý TKQC (adaccounts) + Quản lý quảng cáo (ads-manager).
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Trang chủ', path: 'home', iconName: 'home' },
-  {
-    label: 'Tài sản QC',
-    path: 'ads-asset',
-    iconName: 'folder',
-    roles: ['VIEW_ADACCOUNT'],
-    feature: 'asset-manager',
-  },
+  { label: 'Quản lý TKQC', path: 'adaccounts', iconName: 'credit-card' },
+  { label: 'Quản lý quảng cáo', path: 'ads-manager', iconName: 'megaphone' },
 ];
 
 const PANEL_W = 256;
@@ -30,19 +22,11 @@ const ROW_GAP = 4;
 const ROW_PAD_X = 14;
 
 const route = useRoute();
-const auth = useAuthStore();
 const layout = useLayoutStore();
 
-const bid = computed(() => route.params.bid as string | undefined);
 const isOpen = computed(() => layout.isSidebarOpen);
 
-const items = computed(() =>
-  NAV_ITEMS.map((item) => {
-    const role_ok = !item.roles || item.roles.some((r) => auth.hasRole(r));
-    const feat_ok = !item.feature || auth.hasFeature(item.feature);
-    return { ...item, locked: !(role_ok && feat_ok) };
-  })
-);
+const items = computed(() => NAV_ITEMS);
 
 // Đóng sidebar khi đổi route.
 watch(
@@ -100,32 +84,8 @@ function rowStyle(i: number) {
 
       <nav class="relative flex flex-col">
         <template v-for="(item, i) in items" :key="item.path">
-          <!-- Locked (thiếu quyền) -->
-          <div
-            v-if="item.locked"
-            role="button"
-            aria-disabled="true"
-            :title="`${item.label} — chưa được cấp quyền`"
-            class="group relative flex items-center gap-3 rounded-2xl border border-transparent text-white/35"
-            :style="{ ...rowStyle(i), cursor: 'not-allowed' }"
-          >
-            <span class="relative flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.05] bg-white/[0.02] opacity-70">
-              <Icon :name="item.iconName" :size="18" />
-            </span>
-            <span class="flex-1 truncate text-[13px] font-medium">{{ item.label }}</span>
-            <span
-              aria-hidden="true"
-              class="flex h-5 items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] px-1.5 text-[10px] font-medium tracking-wide text-white/40"
-            >
-              <Icon name="shield" :size="12" />
-              KHÓA
-            </span>
-          </div>
-
-          <!-- Active nav link -->
           <router-link
-            v-else
-            :to="`/business/${bid}/${item.path}`"
+            :to="`/app/${item.path}`"
             custom
             v-slot="{ href, navigate, isActive }"
           >

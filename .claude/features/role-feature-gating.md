@@ -1,25 +1,25 @@
 ---
 slug: role-feature-gating
 remote: shell
-route: /business/:bid/ads-asset (and any future gated remote branch)
-roles: [VIEW_ADACCOUNT]
-feature_flag: asset-manager
-status: done
+route: /app/<remote> (when auth enabled)
+roles: [VIEW_ADACCOUNT] (for ads-manager)
+feature_flag: asset-manager (for ads-manager)
+status: disabled (prototype bypass)
 ---
 
 ## Purpose
-Restrict access to a remote branch by role and/or business feature flag, showing a 403 instead of the remote when the user lacks permission.
+Restrict access to a remote branch by role and/or business feature flag, showing a 403 instead of the remote when the user lacks permission. Currently disabled in prototype due to CORS gateway restrictions.
 
-## Flow
+## Flow (deferred, code logic intact but not used at render)
 1. Shell route for a gated remote renders RemoteHost with `roles` / `feature` props.
 2. RemoteHost computes `allowed` via `auth.hasRole(...)` / `auth.hasFeature(...)`.
 3. allowed=false -> 403 panel; allowed=true -> remote loads via error boundary + Suspense.
 
 ## Files (MANDATORY — real paths, verified to exist)
-- apps/shell/src/components/RemoteHost.vue — `allowed` computed, 403 fallback, wraps remote render
-- apps/shell/src/router/index.ts — declares roles/feature props per gated branch (ads-asset)
-- packages/shared-store/src/auth-store.ts — hasRole / hasFeature getters (owner & full-permission bypass)
-- packages/shared-types/src/index.ts — BusinessRole (roles[], business_features, is_owner, is_full_permission)
+- apps/shell/src/components/RemoteHost.vue — error boundary + Suspense + <router-view> (gating logic removed for prototype)
+- apps/shell/src/router/index.ts — remote routes at /app/adaccounts, /app/ads-manager (no props: roles/feature)
+- packages/shared-store/src/auth-store.ts — hasRole / hasFeature getters (methods still available, not used in prototype)
+- packages/shared-types/src/index.ts — BusinessRole type (still loaded by auth, not checked at render)
 
 ## APIs used
 - none directly (reads roles already loaded by [[auth-flow]] from GET /gate/:bid/me)

@@ -4,21 +4,22 @@
 
 SMIT Agency Client is a production-grade micro-frontend platform (Vue 3) serving as the base for SMIT's SaaS dashboard. Achieves 2.5× smaller bundle than React baseline through careful optimization (Rspack, selective code-splitting, lazy-remote-loading). Focus: lightweight, maintainable, scalable for incremental feature deployment via Module Federation 2.0.
 
-## Scope — Phase 1 (Current)
+## Scope — Prototype (Current)
 
 **What's In:**
-- Shell host (HTTPS, port 8301) with router + auth
-- 2 remote apps (home, ads_asset) as coming-soon placeholders
-- Auth flow (gateway.smit.team integration, role/feature gating)
+- Shell host (HTTPS, port 8301) with simplified routing (/app/<remote>, auth bypassed)
+- Adaccounts remote (port 3010): basic/advanced mode demo UI, mock data
+- Ads Manager remote (port 3002): coming-soon placeholder
 - Shared stores (Pinia), shared types, shared UI (shadcn-vue)
 - Icon sprite system (90 lucide icons)
 - Bundle optimization (300KB performance budget)
 
 **What's Out (Phase 2+):**
+- Auth flow enablement (currently code exists but routers don't use it)
+- Role/feature gating (code exists, not active in prototype routes)
 - Asset sync (Facebook Ads Manager integration)
 - Data tables, advanced filtering
-- Multi-remote orchestration (campaign, analytics, etc.)
-- Real business onboarding flow (placeholder only)
+- Real business context + multi-business orchestration
 - Offline support
 
 ## Key Decisions (Locked)
@@ -58,8 +59,8 @@ SMIT Agency Client is a production-grade micro-frontend platform (Vue 3) serving
 | Req | Description | Status |
 |-----|-----------|--------|
 | **FR1** | Shell loads without blocking on remotes | ✓ Done (Suspense + RemoteLoadingFallback) |
-| **FR2** | Auth flow (checkAuth → redirect → businesses list) | ✓ Done (AuthLayout + auth-store) |
-| **FR3** | Role-based access control (hasRole, hasFeature) | ✓ Done (RemoteHost + store getters) |
+| **FR2** | Auth flow (checkAuth → redirect → businesses list) | ✓ Code ready, disabled for prototype (auth bypass) |
+| **FR3** | Role-based access control (hasRole, hasFeature) | ✓ Code ready, disabled for prototype (no gating in routes) |
 | **FR4** | Remote error recovery (retry, 403 fallback) | ✓ Done (RemoteErrorBoundary) |
 | **FR5** | Icon sprite inlined (no external requests) | ✓ Done (sprite-symbols.ts + Icon.vue) |
 | **FR6** | API client with credentials (cross-origin auth) | ✓ Done (api-client.ts, credentials:include) |
@@ -80,7 +81,7 @@ SMIT Agency Client is a production-grade micro-frontend platform (Vue 3) serving
 1. **Node ≥20:** Modern async/await, top-level await support
 2. **pnpm workspaces:** No symlink monorepo (pnpm hoisting)
 3. **Gateway API:** Must support credentials:include (CORS + SameSite:Strict)
-4. **Remote ports fixed:** home:3010, ads_asset:3002 (hardcoded in shell config)
+4. **Remote ports fixed:** adaccounts:3010, ads-manager:3002 (hardcoded in shell config)
 5. **No IE11 support:** Rspack outputs ES2022 (let, const, arrow functions, etc.)
 
 ## Architecture Highlights
@@ -93,7 +94,9 @@ SMIT Agency Client is a production-grade micro-frontend platform (Vue 3) serving
 **Remotes:**
 - Own their own data fetching + child routes
 - Expose `./App` (standalone entry) + `./routes` (RouteRecordRaw[])
-- Own route tree under business/:bid/<remote> (shell mounts it via RemoteHost)
+- Own route tree under /app/<remote> (shell mounts it via RemoteHost)
+  - adaccounts: basic/advanced mode toggling at runtime, mock data demo
+  - ads-manager: coming-soon placeholder
 
 **API Client:**
 - Centralized fetch wrapper (shared-store/api-client.ts) with per-call timeout + error classification

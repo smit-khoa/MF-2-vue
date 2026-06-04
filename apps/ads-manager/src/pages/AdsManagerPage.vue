@@ -9,8 +9,8 @@ import '../remote-styles.css';
   <div class="flex h-full items-center justify-center">
     <div class="text-center">
       <SmitLoading :full-screen="false" />
-      <h1 class="mt-2 text-xl font-bold text-white">Trang chủ</h1>
-      <p class="mt-2 text-white/50">Module home — đang phát triển.</p>
+      <h1 class="mt-2 text-xl font-bold text-white">Quản lý quảng cáo</h1>
+      <p class="mt-2 text-white/50">Module quản lý quảng cáo — đang phát triển.</p>
     </div>
   </div>
 </template>

@@ -16,7 +16,9 @@ Authenticate the user against the API gateway on app load, hydrate businesses/ro
 3. Not authenticated -> `logout()` redirects to dashboard signin.
 4. Transient network/timeout error -> `auth_error=true`, AuthLayout shows a Retry button (does NOT log the user out).
 5. Authenticated -> `fetchBusinesses()`; restore saved business from localStorage or pick first; load roles + onboarding.
-6. AuthLayout redirects: no owned business -> /introduction; at / -> business home of current business.
+6. AuthLayout redirects: no owned business -> /introduction; at / -> /app -> /app/adaccounts.
+
+**Prototype note:** AuthLayout is currently mounted but not used in prototype routing (bypass for CORS gateway restrictions). Kept in codebase for future auth enablement.
 
 ## Files (MANDATORY — real paths, verified to exist)
 - apps/shell/src/components/AuthLayout.vue — mounts initialize, redirect logic, transient-error retry UI

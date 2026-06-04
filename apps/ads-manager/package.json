@@ -1,12 +1,12 @@
 {
-  "name": "@mf2/home",
+  "name": "@mf2/ads-manager",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "rspack serve --port 3010",
+    "dev": "rspack serve --port 3002",
     "build": "cross-env NODE_ENV=production rspack build",
-    "preview": "serve dist -l 3010",
+    "preview": "serve dist -l 3002",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {

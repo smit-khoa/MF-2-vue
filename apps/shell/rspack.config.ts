@@ -138,6 +138,11 @@ export default defineConfig({
   experiments: {
     css: true,
   },
+  // lazyCompilation (default { imports: true } for web) defers compiling dynamic
+  // imports until runtime requests them. MF remotes load as dynamic imports, and the
+  // cross-origin host→remote compile trigger never completes — the import() hangs and
+  // Suspense stays on the loading fallback forever. Disable so remotes compile eagerly.
+  lazyCompilation: false,
   performance: {
     hints: is_dev ? false : "warning",
     maxAssetSize: 300_000,

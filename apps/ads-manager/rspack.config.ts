@@ -12,18 +12,18 @@ export default defineConfig({
   entry: './src/bootstrap.ts',
   target: 'web',
   output: {
-    publicPath: is_dev ? 'http://localhost:3010/' : 'auto',
-    uniqueName: 'home',
+    publicPath: is_dev ? 'http://localhost:3002/' : 'auto',
+    uniqueName: 'ads_manager',
     clean: true,
     filename: is_dev ? '[name].js' : '[name].[contenthash:8].js',
   },
   devServer: {
-    port: 3010,
+    port: 3002,
     hot: true,
     allowedHosts: 'all',
     historyApiFallback: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
-    client: { webSocketURL: 'ws://localhost:3010/ws', overlay: false },
+    client: { webSocketURL: 'ws://localhost:3002/ws', overlay: false },
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.vue'],
@@ -56,7 +56,7 @@ export default defineConfig({
     }),
     new rspack.HtmlRspackPlugin({ template: './public/index.html', inject: 'body' }),
     new ModuleFederationPlugin({
-      name: 'home',
+      name: 'ads_manager',
       dts: false,
       filename: 'remoteEntry.js',
       exposes: { './App': './src/App.vue', './routes': './src/router/index.ts' },
@@ -71,4 +71,9 @@ export default defineConfig({
     }),
   ].filter(Boolean),
   experiments: { css: true },
+  // lazyCompilation (default { imports: true } for web) defers compiling dynamic
+  // imports until runtime requests them. MF remotes load as dynamic imports, and the
+  // cross-origin host→remote compile trigger never completes — the import() hangs and
+  // Suspense stays on the loading fallback forever. Disable so remotes compile eagerly.
+  lazyCompilation: false,
 });

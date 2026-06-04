@@ -6,18 +6,22 @@ import type { Router, RouteRecordRaw } from 'vue-router';
 interface RemoteEntry {
   /** Name of the parent route already declared in the static route tree. */
   parentName: string;
-  /** URL segment under `business/:bid/` that identifies this remote's branch. */
+  /** URL segment under `/app/` that identifies this remote's branch. */
   segment: string;
   /** Lazy import of the remote's exposed `./routes`. */
   load: () => Promise<{ default: RouteRecordRaw[] }>;
 }
 
 const REMOTES: RemoteEntry[] = [
-  { parentName: 'remote-home', segment: 'home', load: () => import('home/routes') },
   {
-    parentName: 'remote-ads-asset',
-    segment: 'ads-asset',
-    load: () => import('ads_asset/routes'),
+    parentName: 'remote-adaccounts',
+    segment: 'adaccounts',
+    load: () => import('adaccounts/routes'),
+  },
+  {
+    parentName: 'remote-ads-manager',
+    segment: 'ads-manager',
+    load: () => import('ads_manager/routes'),
   },
 ];
 
@@ -78,7 +82,7 @@ export function installRemoteRoutes(router: Router) {
   });
 }
 
-/** True when `path` is `/business/<bid>/<segment>` or any sub-path of it. */
+/** True when `path` is `/app/<segment>` or any sub-path of it. */
 function pathTargetsRemote(path: string, segment: string): boolean {
-  return new RegExp(`^/business/[^/]+/${segment}(?:/|$)`).test(path);
+  return new RegExp(`^/app/${segment}(?:/|$)`).test(path);
 }

@@ -18,12 +18,12 @@ Comprehensive guide to SMIT Client's micro-frontend architecture, data flow, and
 │                                                                │
 │  ┌─ Remotes (lazy-loaded via Module Federation manifest) ────┤
 │  │                                                             │
-│  ├─ Home Remote (port 3010, HTTP)                            │
-│  │  ├─ pages/HomePage.vue (coming-soon placeholder)          │
+│  ├─ Adaccounts Remote (port 3010, HTTP)                       │
+│  │  ├─ pages/AdAccountsPage.vue (basic/advanced mode demo)    │
 │  │  └─ MF exposes ./App + ./routes                            │
 │  │                                                             │
-│  └─ Ads Asset Remote (port 3002, HTTP, role-gated)           │
-│     ├─ pages/AdsAssetPage.vue (coming-soon placeholder)      │
+│  └─ Ads Manager Remote (port 3002, HTTP, placeholder)         │
+│     ├─ pages/AdsManagerPage.vue (coming-soon)                 │
 │     └─ MF exposes ./App + ./routes                            │
 │                                                                │
 │  ┌─ Shared Libraries (pnpm workspaces) ─────────────────────┤
@@ -55,8 +55,8 @@ Comprehensive guide to SMIT Client's micro-frontend architecture, data flow, and
 new ModuleFederationPlugin({
   name: "shell_host",
   remotes: {
-    home: "home@http://localhost:3010/mf-manifest.json",
-    ads_asset: "ads_asset@http://localhost:3002/mf-manifest.json",
+    adaccounts: "adaccounts@http://localhost:3010/mf-manifest.json",
+    ads_manager: "ads_manager@http://localhost:3002/mf-manifest.json",
   },
   shared: {
     // Framework — eager, singleton (prevents version mismatch)
@@ -78,13 +78,14 @@ new ModuleFederationPlugin({
 
 ### Remote Configuration
 
-**Home & Ads Asset (rspack.config.ts):**
+**Adaccounts & Ads Manager (rspack.config.ts):**
 
 ```javascript
 new ModuleFederationPlugin({
-  name: "home",  // or "ads_asset"
+  name: "adaccounts",  // or "ads_manager"
   exposes: {
-    "./App": "./src/App.vue",  // Shell imports via `home/App`
+    "./App": "./src/App.vue",  // Shell imports via `adaccounts/App`
+    "./routes": "./src/router/routes.ts",  // Child routes
   },
   shared: {
     // Same as host, but non-eager (loaded by host)
@@ -101,17 +102,17 @@ new ModuleFederationPlugin({
 Shell loads (port 8301)
   ↓
 MF Plugin loads mf-manifest.json
-  ├─ GET http://localhost:3010/mf-manifest.json (home)
-  └─ GET http://localhost:3002/mf-manifest.json (ads_asset)
+  ├─ GET http://localhost:3010/mf-manifest.json (adaccounts)
+  └─ GET http://localhost:3002/mf-manifest.json (ads_manager)
   ↓
 Manifest returns:
 {
-  "home": { "url": "http://localhost:3010", "exposes": { "./App": "...", "./routes": "..." } },
-  "ads_asset": { "url": "http://localhost:3002", "exposes": { "./App": "...", "./routes": "..." } }
+  "adaccounts": { "url": "http://localhost:3010", "exposes": { "./App": "...", "./routes": "..." } },
+  "ads_manager": { "url": "http://localhost:3002", "exposes": { "./App": "...", "./routes": "..." } }
 }
   ↓
-On first navigation into /business/:bid/home:
-  router guard imports home/routes and addRoute(...) under the named parent (once)
+On first navigation into /app/adaccounts:
+  router guard imports adaccounts/routes and addRoute(...) under the named parent (once)
   ↓
   MF loads remoteEntry.js from http://localhost:3010
   ↓
@@ -140,11 +141,17 @@ App.vue mounts (root component)
   ├─ SpriteProvider (injects icon sprite)
   └─ <router-view />
   ↓
-Router navigates to initial path (/ or /quick-login)
+Router navigates to initial path (/ → /app → /app/adaccounts)
   ↓
-AuthLayout component mounts (wrapper for protected routes)
-  ├─ onMounted() calls auth.initialize()
-  └─ auth-store module guard ensures single execution
+**Prototype routing (auth bypass for CORS restrictions):**
+  AuthLayout mounted but NOT in critical path; AppLayout renders directly
+  ↓
+AppLayout component mounts (shell layout: header + sidebar + <router-view>)
+  ├─ ArcSidebar displays 2 nav items: Quản lý TKQC (/app/adaccounts), Quản lý quảng cáo (/app/ads-manager)
+  └─ AppHeader shows logo + toggle button only (no auth UI in prototype)
+  ↓
+**When auth is enabled (future):**
+  AuthLayout will mount first (module guard for single initialize)
   ↓
 auth.initialize():
   1. is_loading.value = true
@@ -166,29 +173,41 @@ watch([is_loading, is_authenticated, businesses]) triggers evaluateRedirect():
   ├─ if !is_authenticated → auth.logout() → redirect dashboard
   ├─ if !has_owned → router.replace('/introduction')
   ├─ if route is introduction + has_owned → router.replace('/')
-  └─ if route is / → router.replace(`/business/${current_business.id}/home`)
+  └─ if route is / → router.replace(`/business/${current_business.id}/...`)
 ```
 
 ### Authorization Checks
 
-**Two-Level Gating:**
+**Two-Level Gating (deferred for prototype):**
 
-1. **Store-level:** `auth.hasRole(role)`, `auth.hasFeature(feature)` (computed getters; `is_owner`/`is_full_permission` bypass)
-2. **Host-level:** `RemoteHost` component (403 fallback if checks fail — the remote chunk is never loaded when unauthorized)
+1. **Store-level:** `auth.hasRole(role)`, `auth.hasFeature(feature)` (computed getters; `is_owner`/`is_full_permission` bypass) — code exists, not used in prototype
+2. **Host-level:** `RemoteHost` component (403 fallback when auth enabled — currently no role/feature props for prototype routes)
 
-**Example (Ads Asset Remote):**
+**Example (Future — Ads Manager Remote):**
 
 ```typescript
-// Route definition (shell router/index.ts) — named parent, gating via RemoteHost props
+// Route definition (shell router/index.ts) — when auth enabled, will add role/feature gating
 {
-  path: 'ads-asset',
-  name: 'remote-ads-asset',
+  path: 'ads-manager',
+  name: 'remote-ads-manager',
   component: RemoteHost,
-  props: { name: 'ads-asset', roles: ['VIEW_ADACCOUNT'], feature: 'asset-manager' },
+  props: { name: 'ads-manager', roles: ['VIEW_ADACCOUNT'], feature: 'asset-manager' },
 }
 
-// RemoteHost computes `allowed`; if false renders the 403 panel, else the remote's
-// child routes render into <router-view> wrapped by RemoteErrorBoundary + Suspense.
+// RemoteHost computes `allowed`; if false renders 403 panel, else remote loads
+// into <router-view> wrapped by RemoteErrorBoundary + Suspense.
+```
+
+**Current (Prototype):**
+
+```typescript
+// No role/feature props — all remotes accessible
+{
+  path: 'adaccounts',
+  name: 'remote-adaccounts',
+  component: RemoteHost,
+  props: { name: 'adaccounts' },  // Only the MF name
+}
 ```
 
 ### Logout & Session Cleanup

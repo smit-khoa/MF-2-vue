@@ -4,21 +4,21 @@ Quick reference to project structure, module responsibilities, and key files.
 
 ## Overview
 
-5-package pnpm workspace: 2 apps (shell host + 2 remotes), 3 shared libraries.
+5-package pnpm workspace: 3 apps (shell host + 2 remotes), 3 shared libraries.
 
 ```
 smit-client-vue (root)
 ├── apps/
 │   ├── shell (host, port 8301)
-│   ├── home (remote, port 3010)
-│   └── ads_asset (remote, port 3002)
+│   ├── adaccounts (remote, port 3010, basic/advanced mode demo)
+│   └── ads-manager (remote, port 3002, placeholder)
 └── packages/
     ├── shared-types (interfaces, ~60 LOC)
     ├── shared-store (Pinia stores + API client, ~400 LOC)
     └── shared-ui (components + design system, ~300 LOC)
 ```
 
-**Total LOC (excluding node_modules):** ~2,500 (compact, focused).
+**Total LOC (excluding node_modules):** ~3,200 (adaccounts demo added, compact, focused).
 
 ---
 
@@ -33,27 +33,29 @@ smit-client-vue (root)
 | File | LOC | Role |
 |------|-----|------|
 | **src/main.ts** | 14 | createApp + Pinia + router + mount |
-| **src/router/index.ts** | ~55 | Static route tree: /quick-login, /introduction, /business/:bid/{home,ads-asset}; named remote parents |
+| **src/router/index.ts** | ~55 | Static route tree: / → /app → /app/{adaccounts,ads-manager}; named remote parents |
 | **src/router/remote-routes.ts** | ~60 | Dynamic addRoute: loads each remote's `./routes` on first navigation (idempotent, deep-link safe) |
 | **src/bootstrap.ts** | ~30 | Entry point, MF bootstrap guard |
 | **src/App.vue** | ~40 | Root layout: SpriteProvider + router-view |
 | **src/styles.css** | ~100 | Tailwind config + theme (oklch, animations) |
-| **src/components/AuthLayout.vue** | ~85 | Auth guard: initialize → redirect; transient-error retry |
-| **src/components/BusinessLayout.vue** | ~40 | Sync current_business, render layout wrapper |
-| **src/components/AppHeader.vue** | ~50 | Header with dropdowns (user, business, notifications) |
-| **src/components/ArcSidebar.vue** | ~80 | Nav: /home, /ads-asset (role-gated) |
+| **src/components/AuthLayout.vue** | ~85 | Auth guard: initialize → redirect; transient-error retry (orphan in prototype) |
+| **src/components/BusinessLayout.vue** | ~40 | Sync current_business, render layout wrapper (orphan in prototype) |
+| **src/components/AppLayout.vue** | ~50 | Prototype layout: header (logo + toggle) + sidebar + router-view |
+| **src/components/AppHeader.vue** | ~40 | Simplified header (logo + sidebar toggle, no auth UI in prototype) |
+| **src/components/ArcSidebar.vue** | ~60 | Nav: /app/adaccounts (Quản lý TKQC), /app/ads-manager (Quản lý quảng cáo) |
 | **src/components/RemoteHost.vue** | ~40 | Gating + error boundary + Suspense + router-view for remote child routes |
 | **src/pages/CreateBusiness.vue** | ~30 | Placeholder onboarding page |
 | **src/composables/use-click-outside.ts** | ~20 | Directive for dismissing dropdowns |
 | **rspack.config.ts** | 148 | MF host config, shared deps, build optimization |
-| **dev-proxy-config.ts** | ~15 | Remote URLs (home:3010, ads_asset:3002) |
+| **dev-proxy-config.ts** | ~15 | Remote URLs (adaccounts:3010, ads-manager:3002) |
 | **owners.json** | ~10 | MF manifest metadata |
 
 **Architecture:**
 - Bootstrap → main.ts (setup Pinia, router, mount)
-- AuthLayout wraps all protected routes
-- BusinessLayout wraps /business/:bid routes
-- RemoteHost gates a remote branch (role/feature), then renders its child routes (from `./routes`) via Suspense + error boundary
+- AppLayout (new) wraps all routes: header + sidebar + router-view
+- RemoteHost wraps a remote branch, renders its child routes (from `./routes`) via Suspense + error boundary
+  - Prototype: no role/feature props (gating deferred)
+  - (Future: AuthLayout will wrap protected routes when auth enabled)
 
 **Dependencies:**
 - @mf2/shared-store (auth-store, layout-store, api-client)
@@ -63,24 +65,38 @@ smit-client-vue (root)
 
 ---
 
-### Home Remote (`apps/home/`)
+### Adaccounts Remote (`apps/adaccounts/`)
 
-**Purpose:** Lazy-loaded remote app (coming-soon placeholder).
+**Purpose:** Lazy-loaded remote app — Quản lý TKQC (ad accounts), basic/advanced mode demo.
 
 **Key Files:**
 
 | File | LOC | Role |
 |------|-----|------|
-| **src/pages/HomePage.vue** | ~16 | Coming-soon placeholder |
-| **src/App.vue** | ~8 | Standalone entry (renders HomePage) |
-| **src/router/index.ts** | ~10 | Child routes exposed as `./routes` |
+| **src/pages/AdAccountsPage.vue** | ~30 | Route entry, delegates to basic/advanced mode based on mode-store |
+| **src/modes/basic/BasicModeView.vue** | ~60 | Layout: 3/4 table + 1/4 panel grid |
+| **src/modes/basic/AdAccountTable.vue** | ~80 | Multi-select table, mock TKQC data |
+| **src/modes/basic/tool-panel/ToolPanel.vue** | ~40 | Panel container, groups/functions display |
+| **src/modes/basic/tool-panel/ToolGroupGrid.vue** | ~50 | Grid of tool groups, expand to functions |
+| **src/modes/basic/tool-panel/ToolFunctionGrid.vue** | ~50 | Grid of functions, demo action trigger |
+| **src/modes/advanced/AdvancedModePlaceholder.vue** | ~10 | Placeholder "Coming soon" text |
+| **src/stores/mode-store.ts** | ~20 | useModeStore: mode state (basic\|advanced) |
+| **src/composables/use-ad-accounts.ts** | ~30 | Selected accounts state (module-scoped, persists across nav) |
+| **src/composables/use-tool-actions.ts** | ~25 | Group/function selection, demo action |
+| **src/components/DemoActionToast.vue** | ~40 | Toast UI showing "Đã chọn N TKQC" |
+| **src/data/mock-ad-accounts.ts** | ~20 | Static AdAccount[] |
+| **src/data/mock-tool-groups.ts** | ~25 | Static ToolGroup[] + ToolFunction[] |
+| **src/types/ad-account.ts** | ~30 | Local types (not promoted to shared-types) |
+| **src/App.vue** | ~8 | Standalone entry |
+| **src/router/index.ts** | ~15 | Child routes (AdAccountsPage mounted at /) |
 | **src/main.ts** | ~15 | createApp (isolated from shell) |
-| **rspack.config.ts** | ~100 | MF remote config (expose ./App + ./routes) |
+| **rspack.config.ts** | ~100 | MF remote config |
 
 **Architecture:**
-- Owns its child routes (`./routes`), mounted by the shell under `business/:bid/home`
-- Own Pinia instance when standalone; uses host singleton when mounted in shell
-- Fetches own data from API gateway
+- Owns its child routes (`./routes`), mounted by the shell under `/app/adaccounts`
+- Mode toggling is runtime-only (useModeStore, no URL param, resets on page reload)
+- Selection state module-scoped, persists across sidebar navigation intentionally (demo behavior)
+- All data is mock (static arrays, no API calls)
 
 **MF Contract:**
 - Exposes: `./App` (standalone entry) + `./routes` (RouteRecordRaw[])
@@ -88,24 +104,23 @@ smit-client-vue (root)
 
 ---
 
-### Ads Asset Remote (`apps/ads_asset/`)
+### Ads Manager Remote (`apps/ads-manager/`)
 
-**Purpose:** Lazy-loaded remote app (coming-soon placeholder, role-gated).
+**Purpose:** Lazy-loaded remote app (coming-soon placeholder).
 
 **Key Files:**
 
 | File | LOC | Role |
 |------|-----|------|
-| **src/pages/AdsAssetPage.vue** | ~16 | Coming-soon placeholder |
-| **src/App.vue** | ~8 | Standalone entry (renders AdsAssetPage) |
-| **src/router/index.ts** | ~10 | Child routes exposed as `./routes` |
-| **src/main.ts** | ~15 | createApp (isolated from shell) |
-| **rspack.config.ts** | ~100 | MF remote config (expose ./App + ./routes) |
+| **src/pages/AdsManagerPage.vue** | ~16 | Coming-soon placeholder |
+| **src/App.vue** | ~8 | Standalone entry |
+| **src/router/index.ts** | ~10 | Child routes |
+| **src/main.ts** | ~15 | createApp |
+| **rspack.config.ts** | ~100 | MF remote config |
 
 **Architecture:**
-- Same as home; gated by RemoteHost on the shell side
-- Enforces VIEW_ADACCOUNT role + asset-manager feature
-- If checks fail, shell renders 403 page (never loads remote JS)
+- Same as adaccounts; mounted by shell under `/app/ads-manager`
+- (Future: will enforce role/feature gating when auth enabled; for now, accessible to all)
 
 **MF Contract:**
 - Exposes: `./App` (standalone entry) + `./routes` (RouteRecordRaw[])

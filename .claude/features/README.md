@@ -9,8 +9,9 @@ a feature spans api/components/pages/stores, so the doc is the map that re-assem
 | Feature | Remote | Route | Roles | Flag | Status | Doc |
 |---------|--------|-------|-------|------|--------|-----|
 | Auth flow | shell | (protected tree) | — | — | done | [auth-flow](auth-flow.md) |
-| Role & feature gating | shell | /business/:bid/ads-asset | VIEW_ADACCOUNT | asset-manager | done | [role-feature-gating](role-feature-gating.md) |
-| Remote loading & recovery | shell | /business/:bid/<remote> | — | — | done | [remote-loading-recovery](remote-loading-recovery.md) |
+| Role & feature gating | shell | /app/<remote> | — | — | disabled (prototype bypass) | [role-feature-gating](role-feature-gating.md) |
+| Remote loading & recovery | shell | /app/<remote> | — | — | done | [remote-loading-recovery](remote-loading-recovery.md) |
+| Quản lý TKQC — chế độ cơ bản | adaccounts | /app/adaccounts | — | — | done | [adaccounts-basic-mode](adaccounts-basic-mode.md) |
 
 ## Update discipline (MANDATORY)
 

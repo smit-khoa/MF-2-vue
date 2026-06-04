@@ -2,7 +2,7 @@
 
 Base micro-frontend platform for SMIT Agency, built with Vue 3 Composition API, TypeScript, Tailwind CSS v4, and Module Federation 2.0. Focuses on lightweight, scalable architecture for lazy-loading remote applications.
 
-**Status:** Base platform complete (shell + 2 remote coming-soon placeholders). Production-ready bundle optimization.
+**Status:** Prototype complete. Shell + Adaccounts (basic mode demo) functional; Ads Manager placeholder. Production-ready bundle optimization.
 
 ## Stack
 
@@ -28,17 +28,18 @@ Shell (port 8301, HTTPS)
   ├─ shared-ui (icon sprite, buttons, cards, design tokens)
   └─ shared-types (User, Business, BusinessRole, OnboardingProgress)
       │
-      ├─→ Home Remote (port 3010, HTTP, lazy-load)
-      │    └─ App.vue (coming-soon)
+      ├─→ Adaccounts Remote (port 3010, HTTP, lazy-load)
+      │    └─ App.vue + AdAccountsPage (basic/advanced mode, demo)
       │
-      └─→ Ads Asset Remote (port 3002, HTTP, lazy-load)
-           └─ App.vue (coming-soon, role-gated: VIEW_ADACCOUNT + feature asset-manager)
+      └─→ Ads Manager Remote (port 3002, HTTP, lazy-load)
+           └─ App.vue (coming-soon placeholder)
 ```
 
 **MF2 Contract:**
 - Shell exports nothing (consumer only)
 - Remotes expose `./App` (standalone entry) **and** `./routes` (`RouteRecordRaw[]`, child routes)
-- Shell injects each remote's `./routes` under `business/:bid/<remote>` on first navigation (dynamic `addRoute`)
+- Shell injects each remote's `./routes` under `/app/<remote>` on first navigation (dynamic `addRoute`)
+  - Prototype routing: `/app/adaccounts`, `/app/ads-manager` (no auth/business context in URL)
 - Shared singletons: `vue`, `vue-router`, `pinia`, `@mf2/shared-*` (eager)
 - Remote shared non-eager + requiredVersion:false (workspace packages)
 
@@ -58,17 +59,17 @@ pnpm dev
 
 Starts:
 - Shell @ https://dev.smit.team:8301 (HTTPS, with preconnect headers)
-- Home @ http://localhost:3010 (HTTP)
-- Ads Asset @ http://localhost:3002 (HTTP)
+- Adaccounts @ http://localhost:3010 (HTTP)
+- Ads Manager @ http://localhost:3002 (HTTP)
 
-Edit `.env.local` per app to override `API_GATEWAY_URL` or remote URLs via `dev-proxy-config.ts`.
+Edit `.env.local` per app to override `API_GATEWAY_URL` or remote URLs (via `dev-proxy-config.ts`: adaccounts:3010, ads-manager:3002).
 
 ### Development (individual apps)
 
 ```bash
 pnpm dev:shell
-pnpm dev:home
-pnpm dev:ads-asset
+pnpm dev:adaccounts
+pnpm dev:ads-manager
 ```
 
 ### Build (all apps via Turborepo)
@@ -104,19 +105,25 @@ client/
 │   │   ├── src/
 │   │   │   ├── bootstrap.ts  # Entry, guards MF init
 │   │   │   ├── main.ts       # createApp + Pinia + router
-│   │   │   ├── router/      # index.ts (static tree) + remote-routes.ts (dynamic addRoute)
+│   │   │   ├── router/      # index.ts (/app/<remote>) + remote-routes.ts (dynamic addRoute)
 │   │   │   ├── App.vue       # Root layout (SpriteProvider + router-view)
 │   │   │   ├── styles.css    # Tailwind + theme tokens (oklch)
-│   │   │   ├── components/   # AuthLayout, BusinessLayout, AppHeader, ArcSidebar, RemoteHost, etc.
-│   │   │   ├── pages/        # CreateBusiness, QuickLogin (placeholder)
+│   │   │   ├── components/   # AppLayout, AppHeader, ArcSidebar (2-item nav), RemoteHost, orphan files (AuthLayout, BusinessLayout)
+│   │   │   ├── pages/        # (orphan: CreateBusiness, QuickLogin)
 │   │   │   └── composables/  # use-click-outside.ts
-│   │   ├── dev-proxy-config.ts # Remote URLs (home:3010, ads_asset:3002)
+│   │   ├── dev-proxy-config.ts # Remote URLs (adaccounts:3010, ads-manager:3002)
 │   │   ├── owners.json        # MF manifest references
 │   │   └── rspack.config.ts   # MF host config (shared, remotes, optimization)
-│   ├── home/                 # Remote app (coming-soon)
-│   │   └── src/{App.vue, pages/HomePage.vue, router/index.ts (./routes)}
-│   └── ads_asset/            # Remote app (coming-soon, role-gated)
-│       └── src/{App.vue, pages/AdsAssetPage.vue, router/index.ts (./routes)}
+│   ├── adaccounts/           # Remote app — Quản lý TKQC
+│   │   └── src/
+│   │       ├── App.vue
+│   │       ├── pages/AdAccountsPage.vue
+│   │       ├── modes/basic/BasicModeView.vue, AdAccountTable.vue, tool-panel/*
+│   │       ├── modes/advanced/AdvancedModePlaceholder.vue
+│   │       ├── stores/mode-store.ts, composables/, components/, data/, types/
+│   │       └── router/index.ts (./routes)
+│   └── ads-manager/          # Remote app — Quản lý quảng cáo (coming-soon placeholder)
+│       └── src/{App.vue, pages/AdsManagerPage.vue, router/index.ts (./routes)}
 ├── packages/
 │   ├── shared-types/         # TS interfaces (User, Business, BusinessRole, OnboardingProgress, RemoteStatus)
 │   ├── shared-store/         # Pinia stores + API client
@@ -135,26 +142,32 @@ client/
 
 ## Key Features
 
-### Authentication Flow
+### Routing (Prototype)
 
+Prototype uses simplified routing: `/` → `/app` → `/app/adaccounts` (or `/app/ads-manager`).
+- **No auth/business context** in URL (gateway CORS restrictions bypassed for demo)
+- **AppLayout** renders directly: header (logo + toggle) + sidebar (2-item nav) + content
+- ArcSidebar nav items: "Quản lý TKQC" → /app/adaccounts, "Quản lý quảng cáo" → /app/ads-manager
+
+**When auth enabled (future):**
 1. AuthLayout calls `auth.initialize()` on mount
 2. checkAuth() calls `/public/authentication` (API gateway, credentials:include)
 3. If unauthenticated → logout() redirects to dashboard signin
 4. If authenticated + no owned business → redirect `/introduction` (create business)
 5. If authenticated + owned business → auto-select or restore from localStorage, populate roles + onboarding
-6. Route /business/:bid gates subsequent role/feature checks via RemoteHost
+6. Route /app gates subsequent role/feature checks via RemoteHost (props not yet added to prototype routes)
 7. Transient init failure (network/timeout) shows a Retry instead of redirecting to signin
 
-### Role & Feature Gating
+### Role & Feature Gating (Deferred for Prototype)
 
 ```typescript
-// Store API (Composition API)
+// Store API (Composition API) — exists but not used in prototype
 const auth = useAuthStore();
 auth.hasRole('VIEW_ADACCOUNT')     // boolean | (hasRole computation)
 auth.hasFeature('asset-manager')   // boolean | (hasFeature computation)
 ```
 
-Ads Asset remote only loads if user has VIEW_ADACCOUNT role AND asset-manager feature enabled. RemoteHost enforces the 403 fallback at the host (the remote chunk is never loaded when unauthorized). Gating is client-side UX only — the gateway is the real security boundary.
+Code is in place for future auth enablement. RemoteHost supports role/feature props; currently prototype routes omit them. When enabled, ads-manager will require VIEW_ADACCOUNT role AND asset-manager feature. Gating is client-side UX only — the gateway is the real security boundary.
 
 ### Remote Error Recovery
 
@@ -187,21 +200,21 @@ API request timeouts live in the shared api-client (`api({ timeout_ms })`, defau
 - CSS inlined via postcss-loader (no separate CSS file for dev)
 - RemoteLoadingFallback CSS is pure (no animation libraries)
 
-Remote apps (home, ads_asset) are lazy-loaded; initial shell load is ~300KB total.
+Remote apps (adaccounts, ads-manager) are lazy-loaded; initial shell load is ~300KB total.
 
 ## Deployment
 
 Each app builds independently to `dist/`. Deploy strategy:
 
 1. **Shell (host):** Deploy to primary CDN/S3 + CloudFront (update on every build)
-2. **Remotes (home, ads_asset):** Deploy to secondary CDN/S3 + enable versioning (update on every build; shell always fetches latest via mf-manifest.json)
+2. **Remotes (adaccounts, ads-manager):** Deploy to secondary CDN/S3 + enable versioning (update on every build; shell always fetches latest via mf-manifest.json)
 3. **Update config:** Modify `dev-proxy-config.ts` → `app_urls` to point production CDN URLs
 
 Remote URL resolution:
-- **Dev:** Hardcoded localhost (http://localhost:3010, etc.)
-- **Production:** Environment variables `HOME_REMOTE_URL`, `ADS_ASSET_REMOTE_URL` (loaded at build time or runtime via global defines)
+- **Dev:** Hardcoded localhost (http://localhost:3010, http://localhost:3002)
+- **Production:** Environment variables `ADACCOUNTS_REMOTE_URL`, `ADS_MANAGER_REMOTE_URL` (loaded at build time or runtime via global defines)
 
-No shared state between remotes. Each remote fetches its own data from API gateway. Shell orchestrates auth + layout.
+No shared state between remotes. Each remote fetches its own data from API gateway. Shell orchestrates (will orchestrate: auth + layout when enabled).
 
 ## Development Workflow
 
