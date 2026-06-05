@@ -399,15 +399,15 @@ async function api_post<T>(url: string, body: Record<string, any>): Promise<T> {
    └─ fetchBusinessRoles + fetchOnboardingProgress (parallel)
    ↓
    watch() evaluates redirect:
-   ├─ has_owned? → redirect /business/:bid/home
+   ├─ has_owned? → redirect /app/adaccounts
    └─ !has_owned? → redirect /introduction
    ↓
 5b. If not authenticated:
    ├─ logout() → auth.logout()
    └─ window.location.href = `${DASHBOARD_URL}/signin?referer=...`
    ↓
-6. If user navigates to /business/:bid/ads-asset:
-   ├─ Router guard registers ads_asset/routes (once) → matches RemoteHost (name: remote-ads-asset)
+6. If user navigates to /app/ads-manager:
+   ├─ Router guard registers ads_manager/routes (once) → matches RemoteHost (name: remote-ads-manager)
    ├─ RemoteHost computes hasRole('VIEW_ADACCOUNT') && hasFeature('asset-manager')
    ├─ If true → remote child route renders into <router-view>
    │  ├─ MF loads remoteEntry.js from http://localhost:3002
@@ -468,8 +468,8 @@ Shell initial load: ~317KB JS (across chunks)
   ├─ Includes shared stores + types (eager)
   └─ Excludes remote code
 
-Route /business/:bid/home:
-  ├─ Load home remote (~40KB)
+Route /app/adaccounts:
+  ├─ Load adaccounts remote (~40KB)
   └─ First byte from network
 
 No prefetch (conservative, reduces unnecessary traffic)
@@ -492,39 +492,40 @@ mf-manifest.json        (routes remotes to CDN)
 remoteEntry.js          (empty for host)
 ```
 
-**Home/Ads Asset (`dist/`):**
+**adaccounts / ads_manager (`dist/`):**
 ```
 index.html              (standalone dev server)
 main.js                 (40KB, remote code)
 runtime.js              (30KB)
 mf-manifest.json        (routes to self)
-remoteEntry.js          (exports ./App)
+remoteEntry.js          (exports ./App + ./routes)
 ```
 
 ### Deployment Strategy
 
 **Development:**
 - Shell: localhost:8301 (HTTPS, dev server)
-- Home: localhost:3010 (HTTP, dev server)
-- Ads Asset: localhost:3002 (HTTP, dev server)
-- Hardcoded URLs in dev-proxy-config.ts
+- adaccounts: localhost:3010 (HTTP, dev server)
+- ads_manager: localhost:3002 (HTTP, dev server)
+- Dev remote URLs resolved from `owners.json` `{host, port}` in `dev-proxy-config.ts`.
 
-**Production:**
-- Shell: `https://cdn.smit.team/shell/` (CloudFront)
-- Home: `https://cdn.smit.team/home/` (CloudFront, separate origin for cache isolation)
-- Ads Asset: `https://cdn.smit.team/ads-asset/` (CloudFront)
-- URLs set via environment variables or build-time defines
+**Production (same-origin, dist repo):**
+- All apps served from **one origin**. The prod shell bakes each remote URL as a
+  `BASE_PATH`-relative path (`/adaccounts/...`, `/ads-manager/...`), so the browser resolves
+  remotes same-origin regardless of domain — no per-remote CDN, no CORS, no mixed content.
+- `pnpm build` assembles every app's `dist/` into the standalone dist repo `../client-adscheck`
+  (shell at root, remotes under their hyphen segment). The team lead commits + pushes that repo
+  to deploy. No CI auto-deploy (`deploy-pages.yml` retired).
 
-**Update owners.json (shell):**
+**owners.json (shell):** maps remote name → dev `{host, port}`. It does NOT carry prod URLs —
+prod is relative, derived at build time. Example:
 
 ```json
 {
-  "home": "https://cdn.smit.team/home/mf-manifest.json",
-  "ads_asset": "https://cdn.smit.team/ads-asset/mf-manifest.json"
+  "adaccounts": { "host": "localhost", "port": 3010 },
+  "ads_manager": { "host": "localhost", "port": 3002 }
 }
 ```
-
-No shell rebuild needed for remote updates (shell always fetches latest manifest).
 
 ---
 
@@ -539,7 +540,8 @@ No shell rebuild needed for remote updates (shell always fetches latest manifest
   "tasks": {
     "build": {
       "outputs": ["dist/**"],
-      "env": ["NODE_ENV", "API_GATEWAY_URL", "DASHBOARD_URL"]
+      "env": ["NODE_ENV", "API_GATEWAY_URL", "DASHBOARD_URL", "BASE_PATH",
+              "ADACCOUNTS_REMOTE_URL", "ADS_MANAGER_REMOTE_URL"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]  // shared packages typecheck first
@@ -555,7 +557,7 @@ No shell rebuild needed for remote updates (shell always fetches latest manifest
 **Task Execution:**
 - **PR to main:** `pnpm turbo run typecheck build --filter=...[origin/main]`
   - Affected-only: builds changed package + dependent apps
-  - Example: Fix in `shared-types` → typechecks/builds `shared-types`, `shared-store`, `shared-ui`, `shell`, `home`, `ads_asset` (all dependents)
+  - Example: Fix in `shared-types` → typechecks/builds `shared-types`, `shared-store`, `shared-ui`, `shell`, `adaccounts`, `ads-manager` (all dependents)
   - Broken app = PR blocked (CI gate)
 
 - **Push to main:** `pnpm turbo run typecheck build` (full)
@@ -595,11 +597,11 @@ No shell rebuild needed for remote updates (shell always fetches latest manifest
 
 **File Routing:**
 ```
-/packages/shared-*/   @tech-lead
-/apps/home/           @dev-a
-/apps/ads_asset/      @dev-b
-/turbo.json           @tech-lead
-/.github/             @tech-lead
+/packages/shared-*/      @tech-lead
+/apps/adaccounts/        @dev-a
+/apps/ads-manager/       @dev-b
+/turbo.json              @tech-lead
+/.github/                @tech-lead
 ```
 
 Requires GitHub branch protection: "Require review from Code Owners" + "Dismiss stale reviews on push".
@@ -614,7 +616,7 @@ Full rationale: [docs/micro-frontend-governance.md](./micro-frontend-governance.
 |-------|-----------|------------|
 | **1. Additive Changes** | No breaking changes to `shared-*` public API | Code review (tech-lead) |
 | **2. PR-Split** | Never mix `packages/` + `apps/*` in one PR | CODEOWNERS forces separate PRs |
-| **3. Per-App Deploy** | Each app builds + deploys independently | CI tags: `home-deploy-YYYY.MM.DD` |
+| **3. Per-App Deploy** | Each app builds + deploys independently | CI tags: `adaccounts-deploy-YYYY.MM.DD` |
 | **4. CI Gate** | Broken code cannot merge to main | GitHub branch protection |
 | **5. Git Restore** | Roll back one app without touching others | `git restore --source <ref> -- apps/{app}/` |
 
@@ -650,9 +652,9 @@ Full rationale: [docs/micro-frontend-governance.md](./micro-frontend-governance.
 
 | Issue | Debug | Fix |
 |-------|-------|-----|
-| Remote returns 404 | Check dev server running, Network tab URL | `pnpm dev:home` |
+| Remote returns 404 | Check dev server running, Network tab URL | `pnpm dev` (starts all apps) |
 | Shared dep mismatch | Console warns version conflict | Ensure rspack.config shared config matches |
-| Mixed content warning | HTTPS shell + HTTP remote (prod only) | Deploy remotes to HTTPS CDN |
+| Mixed content warning | HTTPS shell + HTTP remote (dev only) | Prod is same-origin relative — no mixed content |
 | Undefined shared module | Remote can't find shared-store | Verify @mf2/shared-store in rspack shared config |
 | Auth token invalid | 401 response from API | Check gateway CORS, cookie SameSite policy |
 

@@ -2,62 +2,69 @@
 
 Complete walkthrough for building, testing, and deploying SMIT Client to production.
 
-> **Note:** The AWS S3/CloudFront sections below predate the current app naming and use
-> the old `home`/`ads_asset` labels. The live demo deploy is **GitHub Pages** (next
-> section); the S3 content is kept as a reference architecture for a future production CDN.
 
 ---
 
-## GitHub Pages (current demo deploy)
+## Dist-repo pipeline (current deploy)
 
-The three apps build to static files and are served from one origin
-(`https://smit-khoa.github.io/MF-2-vue/`). Single origin → no CORS, no mixed-content.
-Remotes run on bundled mock data, so the demo needs no backend.
+The three apps build to static files and are served from **one origin**. Single origin
+→ no CORS, no mixed-content. Remotes run on bundled mock data, so the demo needs no backend.
+
+There is **no CI auto-deploy** — the old `deploy-pages.yml` was retired. The team lead
+publishes manually from a dedicated dist repo, controlling deploy timing.
 
 ### How it works
 
-`.github/workflows/deploy-pages.yml` runs on every push to `main`:
+Same-origin is built into the artifacts, not the host: in production the shell references
+its remotes by **BASE_PATH-relative path** (`/adaccounts/...`, `/ads-manager/...`), so the
+browser resolves them same-origin regardless of domain. No absolute remote URL is baked in.
 
-1. `pnpm install --frozen-lockfile`
-2. `pnpm build` with build-time env:
-   - `BASE_PATH=/MF-2-vue/` — shell `output.publicPath` + vue-router history base
-     (via `__BASE_PATH__` define) + favicon href in `index.html`.
-   - `ADACCOUNTS_REMOTE_URL` / `ADS_MANAGER_REMOTE_URL` — absolute Pages URLs the shell
-     embeds into its MF remote list (`dev-proxy-config.ts` → `rspack.config.ts`).
-   - All three are declared in `turbo.json` `build.env` (Turbo strict env mode).
-3. Merge the three `dist/` outputs into one `_site/` tree:
-   ```
-   _site/                  → /MF-2-vue/
-   ├── index.html + *.js   (shell host)
-   ├── 404.html            (copy of index.html — SPA deep-link fallback)
-   ├── .nojekyll
-   ├── adaccounts/         → /MF-2-vue/adaccounts/  (remoteEntry.js, mf-manifest.json)
-   └── ads-manager/        → /MF-2-vue/ads-manager/
-   ```
-4. `upload-pages-artifact` → `deploy-pages`.
-
-### One-time setup
-
-Enable Pages with the GitHub Actions source:
-```bash
-gh api -X POST repos/smit-khoa/MF-2-vue/pages -f build_type=workflow
-```
-
-### Local verification (mimics the Pages sub-path)
+Local pipeline (all in `client/`):
 
 ```bash
-cd client
-BASE_PATH=/MF-2-vue/ \
-ADACCOUNTS_REMOTE_URL=https://smit-khoa.github.io/MF-2-vue/adaccounts \
-ADS_MANAGER_REMOTE_URL=https://smit-khoa.github.io/MF-2-vue/ads-manager \
-pnpm build
-# assemble _site as above, serve it mounted at /MF-2-vue/, then check shell + remotes load.
+pnpm build            # build apps + assemble directly into ../client-adscheck
+# then, in ../client-adscheck: review, commit, push to deploy
 ```
 
-### Changing the base path
+`pnpm build` (`scripts/build.mjs`) runs `turbo run build`, then `scripts/assemble-dist.mjs`
+merges each app's `dist/` straight into the standalone dist repo (default sibling
+`../client-adscheck`):
 
-If the repo is renamed or moved to a custom domain, update `BASE_PATH` and the two
-`*_REMOTE_URL` values in `deploy-pages.yml` to match the new origin/sub-path.
+```
+client-adscheck/
+├── index.html + *.js   (shell host, at root)
+├── 404.html            (copy of index.html — SPA deep-link fallback)
+├── adaccounts/         (remoteEntry.js, mf-manifest.json)
+└── ads-manager/        (hyphen segment — MF name ads_manager)
+```
+
+- **No `dist-bundle/` middle step** — assembly writes directly to the deploy repo.
+- **Completeness checked before writing**: if shell (host) or any remote's `dist/` is
+  missing (partial build / `pnpm clean`), assembly aborts and leaves `../client-adscheck`
+  untouched — no half-overwritten deploy repo.
+- **Mirror, `.git` preserved**: the target's published files are wiped then copied fresh
+  (stale `[contenthash]` files never accumulate); the dist repo's `.git` is kept. Refuses a
+  target that is the repo or any ancestor of it.
+- **Copy only** — never commits or pushes. Review + commit + push from the dist repo yourself.
+- Selecting apps: `pnpm build --apps adaccounts,shell`, or run `pnpm build` with no flag in a
+  terminal to pick from a checkbox menu (shell always included). To rebuild the full deploy
+  tree, build every app (`pnpm build` with no `--apps` in CI / non-TTY builds all).
+- Override the target: `pnpm build` then `pnpm assemble /path/to/dist-repo`, or
+  `DIST_TARGET=/path pnpm build`.
+
+### BASE_PATH
+
+`BASE_PATH` (default `/`) prefixes both `output.publicPath` and the relative remote URLs.
+Serve at domain root → keep `/`. Serve under a sub-path (e.g. `/client-adscheck/`) →
+`BASE_PATH=/client-adscheck/ pnpm build`. An absolute `*_REMOTE_URL` env still overrides the
+relative path per remote (kept for flexibility; unused by the default same-origin flow).
+
+### Verification scripts
+
+```bash
+pnpm verify:same-origin   # prod build → assert every remote URL is BASE_PATH-relative, no domain
+pnpm verify:dist          # assert ../client-adscheck complete (shell + every remote + 404)
+```
 
 ---
 
@@ -109,8 +116,8 @@ Runs `vue-tsc --noEmit` on all workspaces. Must pass before build.
 **Output:**
 ```
 ✓ apps/shell typecheck
-✓ apps/home typecheck
-✓ apps/ads_asset typecheck
+✓ apps/adaccounts typecheck
+✓ apps/ads-manager typecheck
 ✓ packages/shared-store typecheck
 ✓ packages/shared-ui typecheck
 ✓ packages/shared-types typecheck
@@ -122,7 +129,7 @@ Runs `vue-tsc --noEmit` on all workspaces. Must pass before build.
 # Production build (all 3 apps in parallel)
 pnpm build
 
-# Output: apps/shell/dist, apps/home/dist, apps/ads_asset/dist
+# Output: apps/shell/dist, apps/adaccounts/dist, apps/ads-manager/dist
 ```
 
 **Environment Setup (before build):**
@@ -132,9 +139,15 @@ pnpm build
 export NODE_ENV=production
 export API_GATEWAY_URL=https://gateway.smit.team
 export DASHBOARD_URL=https://dashboard.smit.team
-export HOME_REMOTE_URL=https://cdn.smit.team/home
-export ADS_ASSET_REMOTE_URL=https://cdn.smit.team/ads-asset
+export BASE_PATH=/
 ```
+
+**Turbo build task environment (turbo.json):**
+- `NODE_ENV` — production for minified builds
+- `API_GATEWAY_URL` — gateway domain
+- `DASHBOARD_URL` — dashboard domain for redirects
+- `BASE_PATH` — path prefix if serving under subdirectory (default `/`)
+- `ADACCOUNTS_REMOTE_URL` — override remote URL (optional; same-origin default uses BASE_PATH-relative)
 
 **Build Output Structure:**
 
@@ -145,22 +158,22 @@ apps/shell/dist/
 ├── mf-runtime.js (45KB)
 ├── vendors.js (95KB)
 ├── main.js (95KB)
-├── mf-manifest.json (routes remotes to CDN)
+├── mf-manifest.json (routes remotes to BASE_PATH-relative paths)
 └── remoteEntry.js (empty for host)
 
-apps/home/dist/
+apps/adaccounts/dist/
 ├── index.html
 ├── main.js (40KB)
 ├── runtime.js (30KB)
 ├── mf-manifest.json
-└── remoteEntry.js (exports ./App)
+└── remoteEntry.js (exports ./App + ./routes)
 
-apps/ads_asset/dist/
+apps/ads-manager/dist/
 ├── index.html
 ├── main.js (40KB)
 ├── runtime.js (30KB)
 ├── mf-manifest.json
-└── remoteEntry.js (exports ./App)
+└── remoteEntry.js (exports ./App + ./routes)
 ```
 
 ### 5. Verify Bundle Sizes
@@ -174,7 +187,8 @@ ls -lh apps/*/dist/*.js
 # shell/runtime.js:     ~82KB
 # shell/main.js:        ~40KB
 # shell lazy chunk:     ~27KB
-# home/ads_asset:       ~40KB each
+# adaccounts/main.js:   ~40KB
+# ads-manager/main.js:  ~40KB
 
 # Total shell JS: ~317KB across chunks (no single asset over 300KB) ✓
 ```
@@ -188,147 +202,6 @@ ls -lh apps/*/dist/*.js
    - Large dependencies (Tailwind unused utilities)
 3. Fix and rebuild
 
----
-
-## Artifact Structure
-
-### Shell Manifest (mf-manifest.json)
-
-**Development (apps/shell/dev-proxy-config.ts):**
-
-```json
-{
-  "home": {
-    "url": "http://localhost:3010",
-    "remoteEntry": "http://localhost:3010/remoteEntry.js"
-  },
-  "ads_asset": {
-    "url": "http://localhost:3002",
-    "remoteEntry": "http://localhost:3002/remoteEntry.js"
-  }
-}
-```
-
-**Production (generated at build time, update before deploy):**
-
-```json
-{
-  "home": {
-    "url": "https://cdn.smit.team/home/v1.0.0",
-    "remoteEntry": "https://cdn.smit.team/home/v1.0.0/remoteEntry.js"
-  },
-  "ads_asset": {
-    "url": "https://cdn.smit.team/ads-asset/v1.0.0",
-    "remoteEntry": "https://cdn.smit.team/ads-asset/v1.0.0/remoteEntry.js"
-  }
-}
-```
-
-**Key:** URLs must point to correct remote builds. If remote version changes, update manifest.
-
----
-
-## Deployment Strategy
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│ CloudFront (CDN Cache Layer)                    │
-├─────────────────────────────────────────────────┤
-│ Origin 1: shell.smit.team (S3)                 │
-│ Origin 2: cdn.smit.team/home (S3)              │
-│ Origin 3: cdn.smit.team/ads-asset (S3)         │
-└─────────────────────────────────────────────────┘
-         │
-         │ (User requests)
-         ▼
-    Browser HTTPS
-    https://client.smit.team
-         │
-         ├─ Load index.html (shell)
-         ├─ Load runtime.js + vendors.js + main.js
-         ├─ Load mf-manifest.json
-         └─ Lazy-load remoteEntry.js (home or ads-asset) on route match
-```
-
-### Step 1: Deploy Remotes
-
-Deploy remotes first (home, ads-asset). If shell loads wrong manifest, users still see old remotes (safe).
-
-```bash
-# Build remotes
-pnpm --filter '@mf2/home' build
-pnpm --filter '@mf2/ads-asset' build
-
-# Upload to S3
-aws s3 sync apps/home/dist s3://cdn.smit.team/home/v1.0.0 \
-  --cache-control "public, max-age=31536000, immutable"
-aws s3 sync apps/ads_asset/dist s3://cdn.smit.team/ads-asset/v1.0.0 \
-  --cache-control "public, max-age=31536000, immutable"
-
-# Invalidate CloudFront (if needed for fast rollback)
-aws cloudfront create-invalidation \
-  --distribution-id E1234EXAMPLE \
-  --paths "/*"
-```
-
-**Cache Headers:**
-- `index.html`: `public, max-age=3600` (1 hour, checks for updates frequently)
-- `*.js`: `public, max-age=31536000, immutable` (1 year, content-addressed)
-- `mf-manifest.json`: `public, max-age=300` (5 min, always check for new remotes)
-
-### Step 2: Update Shell Manifest
-
-Before deploying shell, update mf-manifest.json with production remote URLs:
-
-```bash
-# apps/shell/src/mf-manifest.json (or generated at build time)
-{
-  "home": {
-    "url": "https://cdn.smit.team/home/v1.0.0",
-    "remoteEntry": "https://cdn.smit.team/home/v1.0.0/remoteEntry.js"
-  },
-  "ads_asset": {
-    "url": "https://cdn.smit.team/ads-asset/v1.0.0",
-    "remoteEntry": "https://cdn.smit.team/ads-asset/v1.0.0/remoteEntry.js"
-  }
-}
-```
-
-### Step 3: Deploy Shell
-
-```bash
-# Build shell (with updated manifest)
-pnpm --filter '@mf2/shell' build
-
-# Upload to S3
-aws s3 sync apps/shell/dist s3://shell.smit.team/v1.0.0 \
-  --cache-control "public, max-age=3600"  # Short TTL for quick updates
-
-# Invalidate CloudFront
-aws cloudfront create-invalidation \
-  --distribution-id E5678EXAMPLE \
-  --paths "/*"
-```
-
-### Step 4: Verify Deployment
-
-```bash
-# Test in staging
-curl -I https://staging.client.smit.team/index.html
-# Should return 200 OK
-
-# Load in browser
-# https://staging.client.smit.team
-# ✓ Page loads
-# ✓ Auth flow works (calls real gateway.smit.team)
-# ✓ Remote loads (network tab shows remoteEntry.js)
-
-# Check manifest
-curl https://staging.client.smit.team/mf-manifest.json
-# Should return JSON with correct remote URLs
-```
 
 ---
 
@@ -346,77 +219,42 @@ export DASHBOARD_URL=https://dashboard.smit.team
 
 **Used by:** rspack.config.ts `DefinePlugin`, injected as global `__API_GATEWAY_URL__`, etc.
 
-### Runtime (Shell Manifest)
-
-Embedded in `mf-manifest.json` at build time:
-
-```json
-{
-  "home": { "url": "https://cdn.smit.team/home/v1.0.0" },
-  "ads_asset": { "url": "https://cdn.smit.team/ads-asset/v1.0.0" }
-}
-```
-
-### Client-Side (remotes can access)
-
-Remotes inherit auth-store from shell (shared singleton Pinia):
-
-```typescript
-// Inside home remote
-const auth = useAuthStore();
-const apiUrl = __API_GATEWAY_URL__;  // Same as shell
-```
-
 ---
 
 ## Rolling Back
 
-### Quick Rollback (Last 24h)
-
-CloudFront cache still holds previous version:
+If a deployed version has a critical bug, use per-app rollback (never force-push main backwards):
 
 ```bash
-# Invalidate current version
-aws cloudfront create-invalidation \
-  --distribution-id E1234EXAMPLE \
-  --paths "/*"
+# Find the last-good ref for an app (check git log or use a deploy tag)
+git log --oneline -- apps/adaccounts/
 
-# Wait 5–10 min for cache invalidation
-# Users will be served previous version from origin (S3)
+# Roll back ONE app by restoring it to a known-good state
+git restore --source=adaccounts-deploy-2026.06.04 -- apps/adaccounts/
+
+# Verify the bad commit didn't also change shared packages
+git show <bad-sha> --stat | grep packages/   # empty = safe to revert
+
+# Commit and push the rollback (forward commit, not force-push)
+git add apps/adaccounts/ && git commit -m "revert(adaccounts): roll back to last-good"
+git push
+
+# Rebuild only that app and redeploy
+pnpm --filter @mf2/adaccounts build
+# Then assemble and commit to dist repo
 ```
 
-### Full Rollback (Deploy Previous Version)
-
-If current version has critical bug:
-
-```bash
-# Check recent deployments
-aws s3 ls s3://shell.smit.team/
-
-# Deploy previous version tag
-aws s3 sync s3://shell.smit.team/v1.0.0-previous s3://shell.smit.team/ \
-  --delete
-
-# Or re-deploy ONE app from Git — per-path, never whole-repo checkout.
-# Roll back only apps/home to a last-good tag; shell + ads_asset stay at HEAD.
-git restore --source=home-deploy-2026.06.04 -- apps/home/
-# safety: confirm the bad commit did not also touch shared (see micro-frontend-governance.md Layer 5)
-git show <bad-sha> --stat | grep packages/   # empty = clean to revert
-git add apps/home/ && git commit -m "revert(home): roll back to last-good"
-pnpm --filter @mf2/home build  # rebuild only that app, then deploy its dist/
-```
-
-> Do NOT `git checkout <tag>` the whole repo to roll back one remote — that drags every app back in time. Restore per-path. See [micro-frontend-governance.md](micro-frontend-governance.md) Layer 5.
+**Key:** Per-path restore leaves other apps untouched. Never `git checkout <tag>` the whole repo — that reverts every app. See [micro-frontend-governance.md](micro-frontend-governance.md) Layer 5.
 
 ---
 
 ## Monitoring & Health Checks
 
-### Synthetic Checks
+### Synthetic Checks (Same-Origin Deployment)
 
 ```bash
 #!/bin/bash
-# health-check.sh
+# health-check.sh — verify same-origin deployed dist
 
 # 1. Shell loads
 curl -s -o /dev/null -w "%{http_code}" https://client.smit.team/index.html
@@ -424,10 +262,10 @@ curl -s -o /dev/null -w "%{http_code}" https://client.smit.team/index.html
 
 # 2. Manifest resolves
 curl -s https://client.smit.team/mf-manifest.json | jq .
-# Expected: valid JSON with remote URLs
+# Expected: valid JSON with BASE_PATH-relative remote URLs
 
-# 3. Remote loads
-curl -s -o /dev/null -w "%{http_code}" https://cdn.smit.team/home/v1.0.0/remoteEntry.js
+# 3. Remote loads (same origin, relative path)
+curl -s -o /dev/null -w "%{http_code}" https://client.smit.team/adaccounts/remoteEntry.js
 # Expected: 200
 
 # 4. API Gateway reachable
@@ -491,14 +329,13 @@ api_get('/...').catch((error) => {
 
 ```html
 <head>
-  <!-- Preconnect to remote CDN -->
-  <link rel="preconnect" href="https://cdn.smit.team" crossorigin />
-  <!-- Preconnect to API Gateway -->
+  <!-- Preconnect to API Gateway (only external dependency) -->
   <link rel="preconnect" href="https://gateway.smit.team" crossorigin />
 </head>
 ```
 
-**Result:** Browser resolves DNS + TLS in parallel with shell loading (saves ~200ms).
+**Result:** Browser resolves DNS + TLS to gateway in parallel with shell loading (saves ~100–200ms).
+Remotes are same-origin (no preconnect needed); browser resolves them via the already-open connection.
 
 ### Critical Path Optimization
 
@@ -511,10 +348,10 @@ Timeline:
 250ms   ├─ AuthLayout mounts, auth.initialize() starts
 300ms   ├─ checkAuth() call to gateway.smit.team
 350ms   ├─ Response received, is_authenticated = true
-400ms   ├─ Router resolves current_business, navigates to /business/:bid/home
-450ms   ├─ RemoteHost: router guard loads home/routes + remoteEntry.js
+400ms   ├─ Router resolves current_business, navigates to /app/adaccounts
+450ms   ├─ RemoteHost: router guard loads adaccounts/routes + remoteEntry.js
 500ms   ├─ remoteEntry.js loaded
-550ms   ├─ Home page mounts (into RemoteHost router-view)
+550ms   ├─ Adaccounts page mounts (into RemoteHost router-view)
 600ms   ├─ First render visible
 650ms   └─ Remote data fetch starts
 
@@ -532,45 +369,13 @@ Total: ~650ms to interactive
 
 | Issue | Debug | Fix |
 |-------|-------|-----|
-| **Manifest 404** | Check S3 object exists, CloudFront origin path | Upload mf-manifest.json to root dist/ |
-| **Remote 404 (user sees gray box)** | Check remote S3 URL in manifest, CloudFront CDN | Update manifest with correct remote URL |
+| **Manifest 404** | Check dist-repo assembled, shell copied correctly | Re-run `pnpm assemble` or rebuild |
+| **Remote 404 (user sees gray box)** | Check remote folder exists in dist-repo, relative path in manifest | Verify `pnpm assemble` included all remotes |
 | **Auth fails with CORS error** | Check browser console, Network tab CORS headers | Verify gateway.smit.team CORS policy includes shell origin |
 | **Bundle too large (>300KB)** | `rspack build --analyze` or `npm run analyze` | Identify large deps, tree-shake unused code |
-| **Slow TTFB (shell loads slowly)** | CloudFront cache hit ratio, S3 latency | Invalidate cache, check S3 region |
-| **Mixed content warning (HTTPS shell + HTTP remote)** | Browser console warning, Network tab | Deploy remotes to HTTPS CDN (no localhost) |
+| **Slow TTFB (shell loads slowly)** | Network timing, check preconnect headers injected | Verify `BASE_PATH` is correct in build env |
+| **Mixed content warning (HTTPS shell + HTTP remote)** | Browser console warning, Network tab | Ensure prod build uses relative paths (not http://localhost) |
 
----
-
-## Disaster Recovery
-
-### Plan A: Fast Rollback
-
-If critical bug found after deploy:
-
-```bash
-# 1. Check current version
-curl https://client.smit.team/index.html | grep version
-# Output: v1.0.0
-
-# 2. Rollback to previous
-aws s3 cp s3://shell.smit.team/v0.9.9/index.html s3://shell.smit.team/index.html
-aws cloudfront create-invalidation --distribution-id E1234 --paths "/*"
-
-# 3. Verify
-curl https://client.smit.team/index.html | grep version
-# Output: v0.9.9
-```
-
-### Plan B: Canary Deployment
-
-Deploy to subset of users first:
-
-```bash
-# Route 10% of traffic to new version via CloudFront weighted distribution
-# Monitor 5xx errors for 30 min
-# If OK, gradually increase to 100%
-# If error, rollback to 0%
-```
 
 ---
 
@@ -600,28 +405,29 @@ git tag v1.0.0-deployed -m "Deployed to production 2026-06-04"
 
 ### Per-App Deploy Tags (rollback anchors)
 
-Apps deploy independently — a broken `home` must not block deploying `ads_asset` or `shell`.
+Apps deploy independently — a broken `adaccounts` must not block deploying `ads-manager` or `shell`.
 Tag each successful production deploy PER APP so a per-path rollback (see Rolling Back) has a
 known-good anchor instead of guessing a SHA:
 
 ```bash
 # build one app only (Turbo: changed + its deps)
-pnpm --filter @mf2/home build      # or: pnpm turbo run build --filter=@mf2/home
+pnpm --filter @mf2/adaccounts build      # or: pnpm turbo run build --filter=@mf2/adaccounts
 
 # after that app's deploy succeeds
-git tag home-deploy-$(date +%Y.%m.%d) -m "home deployed to production"
+git tag adaccounts-deploy-$(date +%Y.%m.%d) -m "adaccounts deployed to production"
 git push --tags
 ```
 
-### Remote Versioning
+### Remote Versioning (Same-Origin)
 
-Each remote deployed independently:
+Each remote deployed independently to the same-origin dist repo:
 
 ```
-apps/home/dist → s3://cdn.smit.team/home/v1.0.0
-apps/ads_asset/dist → s3://cdn.smit.team/ads-asset/v1.0.0
+apps/adaccounts/dist → ../client-adscheck/adaccounts/
+apps/ads-manager/dist → ../client-adscheck/ads-manager/
 
-Update shell manifest to reference correct versions
+Shell's mf-manifest.json references remotes as BASE_PATH-relative paths
+(e.g. /adaccounts/remoteEntry.js, /ads-manager/remoteEntry.js)
 ```
 
 ---
@@ -632,8 +438,8 @@ Update shell manifest to reference correct versions
 
 - [ ] Shell loads (https://client.smit.team)
 - [ ] Auth flow works (redirects to login if not authenticated)
-- [ ] Home remote loads (navigate to /business/:bid/home)
-- [ ] Ads Asset remote blocked (403 if no VIEW_ADACCOUNT role)
+- [ ] Adaccounts remote loads (navigate to /app/adaccounts)
+- [ ] Ads Manager remote accessible (navigate to /app/ads-manager)
 - [ ] Icons display (inspect SpriteProvider)
 - [ ] Console clean (no errors, no console.log)
 - [ ] Bundle size within budget (check Network tab)
@@ -651,14 +457,11 @@ curl -s -o /dev/null -w "Status: %{http_code}\n" https://client.smit.team/index.
 echo "2. Testing manifest..."
 curl -s https://client.smit.team/mf-manifest.json | jq . || echo "ERROR: Manifest invalid JSON"
 
-echo "3. Testing home remote..."
-curl -s -o /dev/null -w "Status: %{http_code}\n" https://cdn.smit.team/home/v1.0.0/remoteEntry.js
+echo "3. Testing adaccounts remote (same-origin)..."
+curl -s -o /dev/null -w "Status: %{http_code}\n" https://client.smit.team/adaccounts/remoteEntry.js
 
 echo "4. Testing API gateway..."
 curl -s -o /dev/null -w "Status: %{http_code}\n" https://gateway.smit.team/public/authentication
-
-echo "5. Checking bundle size..."
-aws s3 ls s3://shell.smit.team/ --recursive --human-readable | grep -E "\.js$"
 
 echo "All checks complete."
 ```
@@ -669,10 +472,9 @@ echo "All checks complete."
 
 ### Monthly Tasks
 
-- [ ] Review CloudFront cache hit ratio
 - [ ] Check for security updates in dependencies
-- [ ] Review error logs (Sentry, CloudWatch)
-- [ ] Test rollback procedure (practice)
+- [ ] Review error logs (if integrated)
+- [ ] Test rollback procedure (practice — use `git restore` per app)
 
 ### Quarterly Tasks
 
@@ -682,7 +484,7 @@ echo "All checks complete."
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** 2026-06-04  
+**Document Version:** 1.1  
+**Last Updated:** 2026-06-05  
 **Audience:** DevOps, SRE, deployment engineers  
-**Next Review:** 2026-07-04 (after Phase 2 release)
+**Next Review:** 2026-07-05

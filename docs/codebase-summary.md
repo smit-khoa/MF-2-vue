@@ -284,16 +284,16 @@ AuthLayout.watch([is_loading, is_authenticated, businesses])
   ↓ evaluateRedirect()
   ├─ if !authenticated → logout() → redirect dashboard
   ├─ if !has_owned → redirect /introduction
-  └─ if owned → redirect /business/:bid/home
+  └─ if owned → redirect /app/adaccounts
 ```
 
 ### Remote Loading
 
 ```
-Shell.router → /business/:bid/ads-asset
+Shell.router → /app/ads-manager
 
 router guard (remote-routes.ts)
-  ↓ first navigation: import('ads_asset/routes') + addRoute under 'remote-ads-asset' (once)
+  ↓ first navigation: import('ads_manager/routes') + addRoute under 'remote-ads-manager' (once)
 
 RemoteHost (route props: name, roles, feature)
   ↓ computed checks auth.hasRole('VIEW_ADACCOUNT') && auth.hasFeature('asset-manager')
@@ -335,8 +335,8 @@ if 2xx → return parsed JSON
 | **apps/shell/rspack.config.ts** | MF host: shared deps, remotes config, optimization budget |
 | **apps/shell/dev-proxy-config.ts** | Remote URLs (dev-only) |
 | **apps/shell/tailwind.config.ts** | Tailwind theme (oklch, components) |
-| **apps/home/rspack.config.ts** | MF remote: expose ./App |
-| **apps/ads_asset/rspack.config.ts** | MF remote: expose ./App |
+| **apps/adaccounts/rspack.config.ts** | MF remote: expose ./App |
+| **apps/ads-manager/rspack.config.ts** | MF remote: expose ./App |
 | **.github/workflows/ci.yml** | GitHub Actions: Turbo typecheck + build gate for PRs (affected-only), full verify on push to main |
 | **.github/CODEOWNERS** | Required reviewers: @tech-lead for packages/shared-*, per-app owners for apps/* |
 | **CLAUDE.md** | Governance rules: 5 isolation layers (additive, PR-split, per-app deploy, CI gate, git restore) |
@@ -355,15 +355,15 @@ shell (host)
   │   └─ tailwindcss
   ├─ shared-types
   ├─ vue, vue-router, pinia (eager shared)
-  └─ remotes (ads_asset, home) lazy-load via MF
+  └─ remotes (adaccounts, ads-manager) lazy-load via MF
 
-home (remote)
+adaccounts (remote)
   ├─ shared-store (shared singleton)
   ├─ shared-ui (shared singleton)
   ├─ shared-types (shared singleton)
   └─ vue, vue-router, pinia (shared singletons from host)
 
-ads_asset (remote)
+ads-manager (remote)
   ├─ shared-store (shared singleton)
   ├─ shared-ui (shared singleton)
   ├─ shared-types (shared singleton)
@@ -383,14 +383,14 @@ ads_asset (remote)
 - mf-manifest.json (routes remotes to CDN URLs)
 - remoteEntry.js (MF entry point, empty for host)
 
-**Home (dist/):**
+**Adaccounts (dist/):**
 - mf-manifest.json
 - remoteEntry.js (exports ./App + ./routes)
 - main.js + lazy page chunk
 - index.html (standalone dev server)
 
-**Ads Asset (dist/):**
-- Same shape as home
+**Ads Manager (dist/):**
+- Same shape as adaccounts
 
 **Total Shell JS:** ~317KB across chunks (no single asset over the 300KB per-asset budget); remotes lazy-loaded.
 

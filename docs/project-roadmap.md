@@ -37,8 +37,8 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Shell** | ✓ Done | Router + AuthLayout + BusinessLayout + components |
-| **Home Remote** | ✓ Done | Coming-soon placeholder, lazy-loads correctly |
-| **Ads Asset Remote** | ✓ Done | Coming-soon placeholder, role-gated (VIEW_ADACCOUNT) |
+| **Adaccounts Remote** | ✓ Done | Coming-soon placeholder, lazy-loads correctly |
+| **Ads Manager Remote** | ✓ Done | Coming-soon placeholder, role-gated (VIEW_ADACCOUNT) |
 | **Shared Store** | ✓ Done | auth-store.ts (initialize, checkAuth, fetch*, setCurrentBusiness, logout), layout-store.ts |
 | **Shared UI** | ✓ Done | Icon.vue, Button.vue, Card.vue, RemoteErrorBoundary.vue, SmitLoading.vue |
 | **Shared Types** | ✓ Done | User, Business, BusinessRole, OnboardingProgress, RemoteStatus |
@@ -84,7 +84,7 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 
 ### Detailed Tasks
 
-#### 2.1 Asset Sync (Home Remote)
+#### 2.1 Asset Sync (Adaccounts Remote)
 
 **Scope:**
 - Fetch campaigns from gateway.smit.team
@@ -117,7 +117,7 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 - Replace placeholder form with real inputs (business name, timezone, industry)
 - Form validation (Zod or Yup integration, <100 LOC)
 - Submit to `POST /gate/register/business`
-- On success: redirect to /business/:new_bid/home
+- On success: redirect to /app/adaccounts
 
 **Components:**
 - `CreateBusinessForm.vue` (form, <150 LOC)
@@ -175,7 +175,7 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 
 - [ ] Asset sync displays campaign list, can trigger sync
 - [ ] CreateBusiness form validates input, creates business, redirects
-- [ ] DataTable component sortable and paginated (works in Home Remote example)
+- [ ] DataTable component sortable and paginated (works in Adaccounts Remote example)
 - [ ] 20+ unit tests pass, 3 e2e tests pass
 - [ ] TypeCheck passes (pnpm typecheck)
 - [ ] Build succeeds with 0 warnings (bundle size tracked)
@@ -214,7 +214,7 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 
 ### Timeline
 
-- 2 weeks (4 remotes total = shell + home + ads-asset + analytics + settings)
+- 2 weeks (5 remotes total = shell + adaccounts + ads-manager + analytics + settings)
 
 ---
 
@@ -268,7 +268,7 @@ Phase 1 (base) → Phase 2 (asset sync) → Phase 3 (analytics) → Phase 4 (off
 
 ### Bundle Size
 
-| Phase | Shell (total JS) | Home | Ads Asset | Per-asset target |
+| Phase | Shell (total JS) | Adaccounts | Ads Manager | Per-asset target |
 |-------|-------|------|-----------|--------|
 | 1 | ~317KB (largest asset ~169KB) | ~40KB | ~40KB | < 300KB/asset ✓ |
 | 2 | 330KB | 120KB | 100KB | < 400KB | (estimated) |
@@ -351,7 +351,7 @@ Target: Keep initial shell < 350KB, each remote < 150KB (lazy-load 2 remotes = ~
 - ✓ **GitHub Actions** for CI gate (vs GitLab, Circle CI)
 - ✓ **Monorepo + pnpm workspaces** for repo layout (vs multi-repo, git submodules)
 - ✓ **5-layer governance** for MFE isolation (additive + PR-split + per-app deploy + CI gate + git restore)
-- ✓ **Per-app deploy tags** for rollback targeting (home-deploy-YYYY.MM.DD convention)
+- ✓ **Per-app deploy tags** for rollback targeting (adaccounts-deploy-YYYY.MM.DD convention)
 
 ---
 

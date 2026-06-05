@@ -23,7 +23,7 @@ shared: {
 }
 ```
 
-At runtime, when `home` and `ads_asset` are both loaded into the `shell` page, **exactly one instance** of each shared package exists. Module Federation loads the highest compatible version and warns on the rest.
+At runtime, when `adaccounts` and `ads-manager` are both loaded into the `shell` page, **exactly one instance** of each shared package exists. Module Federation loads the highest compatible version and warns on the rest.
 
 Implication that drives all 5 layers below:
 > **You cannot have independent shared versions at runtime — not with monorepo, not with npm-published packages, not with submodules.** A breaking change in `shared-*` breaks *every* app simultaneously, regardless of how the code is distributed. Isolation must therefore come from **discipline + process**, not from repo boundaries.
@@ -53,7 +53,7 @@ export interface Business {
 ```ts
 export interface Business {
   business_id: string;
-  title: string;       // renamed from `name` → ads_asset reading `.name` breaks instantly
+  title: string;       // renamed from `name` → ads-manager reading `.name` breaks instantly
 }
 ```
 
@@ -75,8 +75,8 @@ export interface Business {
 Never mix `packages/shared-*` and `apps/*` in one PR/commit.
 
 ```
-PR #A  feat(shared): add avatar_url to User    ← packages/ only; compiles + tests; merge FIRST
-PR #B  feat(home): profile UI (depends on #A)  ← apps/home only; may be WIP/broken; stays on branch
+PR #A  feat(shared): add avatar_url to User         ← packages/ only; compiles + tests; merge FIRST
+PR #B  feat(adaccounts): profile UI (depends on #A) ← apps/adaccounts only; may be WIP/broken; stays on branch
 ```
 
 Payoff:
@@ -89,14 +89,14 @@ Enforced by `.github/CODEOWNERS` (see Layer 4) requiring tech-lead review on `pa
 ### Layer 3 — Deploy per-app
 
 MFE's whole point is independent deployability. Each app builds + deploys on its own:
-- A red `home` build must NOT block deploying `ads_asset` or `shell`.
-- `home` simply keeps serving its last-good deployed bundle until fixed.
+- A red `adaccounts` build must NOT block deploying `ads-manager` or `shell`.
+- `adaccounts` simply keeps serving its last-good deployed bundle until fixed.
 - Do not batch "build all 3, deploy together" — that reintroduces monolith coupling.
 
 Tag every successful production deploy per-app so Layer 5 can target a known-good state:
 ```
-home-deploy-2026.06.04
-ads_asset-deploy-2026.06.04
+adaccounts-deploy-2026.06.04
+ads-manager-deploy-2026.06.04
 ```
 
 > Note: the legacy "`pnpm build` succeeds (all 3 apps)" line in the deploy checklist is a *pre-merge sanity gate*, not the deploy unit. The deploy unit is one app.
@@ -109,15 +109,15 @@ Sketch (`.github/workflows/ci.yml`):
 ```yaml
 - run: pnpm install --frozen-lockfile
 - run: pnpm turbo run typecheck build --filter=...[origin/main]
-  # only affected apps; broken home → red PR → cannot merge
+  # only affected apps; broken adaccounts → red PR → cannot merge
 ```
 
 - Branch protection on `main`: CI green required before merge.
 - `.github/CODEOWNERS`:
   ```
   /packages/shared-*/   @tech-lead     # shared touch needs lead review (enforces Layer 1+2)
-  /apps/home/           @dev-a
-  /apps/ads_asset/      @dev-b
+  /apps/adaccounts/     @dev-a
+  /apps/ads-manager/    @dev-b
   ```
 
 Turbo + CI are a pair: Turbo makes CI fast (affected-only), CI uses Turbo to block breakage.
@@ -127,20 +127,20 @@ Turbo + CI are a pair: Turbo makes CI fast (affected-only), CI uses Turbo to blo
 Reactive recovery when layers 1–4 leak. Roll back one remote without touching others:
 
 ```bash
-# find last-good home commit (or use a deploy tag)
-git log --oneline -- apps/home/
+# find last-good adaccounts commit (or use a deploy tag)
+git log --oneline -- apps/adaccounts/
 
-# restore ONLY apps/home/ to that ref — everything else stays at HEAD
-git restore --source=home-deploy-2026.06.04 -- apps/home/
+# restore ONLY apps/adaccounts/ to that ref — everything else stays at HEAD
+git restore --source=adaccounts-deploy-2026.06.04 -- apps/adaccounts/
 
 # safety: confirm the bad commit didn't also change shared
 git show <bad-sha> --stat | grep packages/   # empty = clean to revert
 
-git add apps/home/ && git commit -m "revert(home): roll back to last-good, drop broken code"
+git add apps/adaccounts/ && git commit -m "revert(adaccounts): roll back to last-good, drop broken code"
 git push   # forward commit — never force-push main backwards
 ```
 
-If a bad commit *did* touch `packages/shared-*` (Layer 2 was violated), decide whether other apps need that shared change before reverting it — don't blindly drop shared that `ads_asset` now depends on.
+If a bad commit *did* touch `packages/shared-*` (Layer 2 was violated), decide whether other apps need that shared change before reverting it — don't blindly drop shared that `ads-manager` now depends on.
 
 ---
 
@@ -152,7 +152,7 @@ prevent ────────────────────────
  (shared safe)  (clean revert) per-app     (main green)  (lifeboat)
 ```
 
-The first four mean a broken `home` almost never reaches `main` or production, and when it does it's isolated to `apps/home/`. The fifth is the rarely-needed safety net — not a management strategy.
+The first four mean a broken `adaccounts` almost never reaches `main` or production, and when it does it's isolated to `apps/adaccounts/`. The fifth is the rarely-needed safety net — not a management strategy.
 
 ## Open questions
 

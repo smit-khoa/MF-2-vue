@@ -47,7 +47,7 @@ SMIT Agency Client is a production-grade micro-frontend platform (Vue 3) serving
 ### 5. Localhost HTTP for Remotes (Dev)
 - **Why:** Secure-context exception allows http://localhost in HTTPS-shell dev environment; avoids cert generation hassle
 - **Trade-off:** Production requires both HTTPS; no mixed-content warnings in prod
-- **Lock:** Dev = http://localhost:XXXX. Prod = https://cdn.smit.team/remote-name/... (env-configured).
+- **Lock:** Dev = http://localhost:XXXX. Prod = same-origin BASE_PATH-relative path (`/<remote>/...`), no separate CDN host.
 
 ### 6. Eager Shared Singletons (vue, vue-router, pinia, @mf2/shared-*)
 - **Why:** Prevents version mismatch at runtime (critical for shared store), faster initialization

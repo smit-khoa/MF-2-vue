@@ -60,7 +60,7 @@ Shell is refactored to the §2 layout so it is the canonical example remotes cop
 
 ## 4. Remote routing contract (MF contract change — approved)
 
-Problem today: shell uses `home/:pathMatch(.*)*` but there is NO convention for how a remote declares its child routes. Breaks first when a remote gains real screens.
+Problem today: shell uses hardcoded route segments but there is NO convention for how a remote declares its child routes. Breaks first when a remote gains real screens.
 
 Contract:
 
@@ -91,8 +91,8 @@ Already declared in CLAUDE.md but the directory does not exist yet. This creates
 ```markdown
 ---
 slug: ads-account-list
-remote: ads_asset
-route: /business/:bid/ads-asset/accounts
+remote: ads-manager
+route: /app/ads-manager/accounts
 roles: [VIEW_ADACCOUNT]
 feature_flag: asset-manager
 status: planned | in-progress | done
@@ -102,9 +102,9 @@ One sentence.
 ## Flow
 Step 1 -> 2 -> 3 (user action -> API -> state -> UI).
 ## Files (MANDATORY — real paths)
-- apps/ads_asset/src/pages/AdsAccountList.vue
-- apps/ads_asset/src/api/ads-account.ts
-- apps/ads_asset/src/stores/ads-account-store.ts
+- apps/ads-manager/src/pages/AdsAccountList.vue
+- apps/ads-manager/src/api/ads-account.ts
+- apps/ads-manager/src/stores/ads-account-store.ts
 ## APIs used
 - GET /gate/:bid/ad-accounts -> AdAccount[]
 ## Related

@@ -7,13 +7,20 @@ Conventions for writing maintainable, consistent code across the codebase.
 ### Via Turborepo (Monorepo-aware)
 
 ```bash
-pnpm build              # turbo run build --filter='./apps/*' (remotes only)
+pnpm build              # node scripts/build.mjs: pick apps (TTY checkbox menu) → turbo build → assemble into ../client-adscheck
+pnpm build --apps adaccounts,shell   # build only those apps (skips the menu)
+pnpm assemble [target]  # re-mirror existing build output into the dist repo (default ../client-adscheck)
 pnpm typecheck          # turbo run typecheck (all workspaces, enforced in CI)
 pnpm dev:shell          # pnpm --filter @mf2/shell dev
-pnpm dev:home           # pnpm --filter @mf2/home dev
-pnpm dev:ads-asset      # pnpm --filter @mf2/ads-asset dev
+pnpm verify:same-origin # assert prod remote URLs are BASE_PATH-relative (no absolute domain)
+pnpm verify:dist        # assert ../client-adscheck assembled complete (shell + remotes + 404)
 pnpm clean              # pnpm -r exec rm -rf dist (raw, not Turbo)
 ```
+
+`pnpm build` wraps Turbo via `scripts/build.mjs`: a checkbox app-picker (TTY only; non-TTY/CI
+builds all), then `scripts/assemble-dist.mjs` mirrors the per-app `dist/` straight into the
+standalone dist repo `../client-adscheck` (shell at root, remotes under hyphen segments, `404.html`).
+shell is always built. CI calls `turbo run build` directly, bypassing the wrapper.
 
 **Turbo Optimization:**
 - `build` outputs to `dist/**`
@@ -23,19 +30,20 @@ pnpm clean              # pnpm -r exec rm -rf dist (raw, not Turbo)
 
 ### Key Detail: Env Vars in Build
 
-`turbo.json` `build.env` currently lists exactly the vars shell's rspack reads at build time:
+`turbo.json` `build.env` lists the vars rspack reads at build time:
 
 ```json
 "build": {
   "outputs": ["dist/**"],
-  "env": ["NODE_ENV", "API_GATEWAY_URL", "DASHBOARD_URL"]
+  "env": ["NODE_ENV", "API_GATEWAY_URL", "DASHBOARD_URL", "BASE_PATH",
+          "ADACCOUNTS_REMOTE_URL", "ADS_MANAGER_REMOTE_URL"]
 }
 ```
 
-If you make a NEW var build-time consumed, add it here too — otherwise Turbo serves
-cached builds even after the var changes. Note: `HOME_REMOTE_URL` / `ADS_ASSET_REMOTE_URL`
-appear in `.env.example` and the deploy guide but are NOT read at build time today
-(remote URLs resolve via `mf-manifest.json` at runtime), so they are correctly absent here.
+If you make a NEW var build-time consumed, add it here too — otherwise Turbo serves cached
+builds even after the var changes. `BASE_PATH` prefixes `output.publicPath` and the relative
+remote URLs; `ADACCOUNTS_REMOTE_URL` / `ADS_MANAGER_REMOTE_URL` override a remote's URL when set
+(unused by the default same-origin flow, but listed so an override does not serve a stale cache).
 
 ---
 
