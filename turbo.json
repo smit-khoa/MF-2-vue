@@ -3,7 +3,14 @@
   "tasks": {
     "build": {
       "outputs": ["dist/**"],
-      "env": ["NODE_ENV", "API_GATEWAY_URL", "DASHBOARD_URL"]
+      "env": [
+        "NODE_ENV",
+        "API_GATEWAY_URL",
+        "DASHBOARD_URL",
+        "BASE_PATH",
+        "ADACCOUNTS_REMOTE_URL",
+        "ADS_MANAGER_REMOTE_URL"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]

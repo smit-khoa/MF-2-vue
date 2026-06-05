@@ -2,6 +2,65 @@
 
 Complete walkthrough for building, testing, and deploying SMIT Client to production.
 
+> **Note:** The AWS S3/CloudFront sections below predate the current app naming and use
+> the old `home`/`ads_asset` labels. The live demo deploy is **GitHub Pages** (next
+> section); the S3 content is kept as a reference architecture for a future production CDN.
+
+---
+
+## GitHub Pages (current demo deploy)
+
+The three apps build to static files and are served from one origin
+(`https://smit-khoa.github.io/MF-2-vue/`). Single origin → no CORS, no mixed-content.
+Remotes run on bundled mock data, so the demo needs no backend.
+
+### How it works
+
+`.github/workflows/deploy-pages.yml` runs on every push to `main`:
+
+1. `pnpm install --frozen-lockfile`
+2. `pnpm build` with build-time env:
+   - `BASE_PATH=/MF-2-vue/` — shell `output.publicPath` + vue-router history base
+     (via `__BASE_PATH__` define) + favicon href in `index.html`.
+   - `ADACCOUNTS_REMOTE_URL` / `ADS_MANAGER_REMOTE_URL` — absolute Pages URLs the shell
+     embeds into its MF remote list (`dev-proxy-config.ts` → `rspack.config.ts`).
+   - All three are declared in `turbo.json` `build.env` (Turbo strict env mode).
+3. Merge the three `dist/` outputs into one `_site/` tree:
+   ```
+   _site/                  → /MF-2-vue/
+   ├── index.html + *.js   (shell host)
+   ├── 404.html            (copy of index.html — SPA deep-link fallback)
+   ├── .nojekyll
+   ├── adaccounts/         → /MF-2-vue/adaccounts/  (remoteEntry.js, mf-manifest.json)
+   └── ads-manager/        → /MF-2-vue/ads-manager/
+   ```
+4. `upload-pages-artifact` → `deploy-pages`.
+
+### One-time setup
+
+Enable Pages with the GitHub Actions source:
+```bash
+gh api -X POST repos/smit-khoa/MF-2-vue/pages -f build_type=workflow
+```
+
+### Local verification (mimics the Pages sub-path)
+
+```bash
+cd client
+BASE_PATH=/MF-2-vue/ \
+ADACCOUNTS_REMOTE_URL=https://smit-khoa.github.io/MF-2-vue/adaccounts \
+ADS_MANAGER_REMOTE_URL=https://smit-khoa.github.io/MF-2-vue/ads-manager \
+pnpm build
+# assemble _site as above, serve it mounted at /MF-2-vue/, then check shell + remotes load.
+```
+
+### Changing the base path
+
+If the repo is renamed or moved to a custom domain, update `BASE_PATH` and the two
+`*_REMOTE_URL` values in `deploy-pages.yml` to match the new origin/sub-path.
+
+---
+
 ## Pre-Deployment Checklist
 
 Before any deployment:

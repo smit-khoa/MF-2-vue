@@ -4,6 +4,10 @@ import RemoteHost from '../components/RemoteHost.vue';
 import NotFound from '../components/NotFound.vue';
 import { installRemoteRoutes } from './remote-routes';
 
+// Build-time define (rspack DefinePlugin). Sub-path host (e.g. GitHub Pages /MF-2-vue/)
+// needs the router history rooted at that prefix; defaults to '/' for root deploys/dev.
+declare const __BASE_PATH__: string;
+
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/app' },
   {
@@ -32,7 +36,9 @@ const routes: RouteRecordRaw[] = [
 ];
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(
+    typeof __BASE_PATH__ !== 'undefined' ? __BASE_PATH__ : '/'
+  ),
   routes,
 });
 

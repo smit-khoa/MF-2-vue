@@ -24,7 +24,11 @@ export default defineConfig({
   entry: "./src/bootstrap.ts",
   target: "web",
   output: {
-    publicPath: is_dev ? "https://dev.smit.team:8301/" : "auto",
+    // Under a sub-path host (e.g. GitHub Pages /MF-2-vue/), assets must resolve from
+    // BASE_PATH, not the document root. Falls back to 'auto' when unset (root deploy).
+    publicPath: is_dev
+      ? "https://dev.smit.team:8301/"
+      : process.env.BASE_PATH || "auto",
     uniqueName: "shell_host",
     clean: true,
     filename: is_dev ? "[name].js" : "[name].[contenthash:8].js",
@@ -82,6 +86,8 @@ export default defineConfig({
       __DASHBOARD_URL__: JSON.stringify(
         process.env.DASHBOARD_URL || "https://dashboard.smit.team"
       ),
+      // Router history base — keeps client-side routes under the sub-path host.
+      __BASE_PATH__: JSON.stringify(process.env.BASE_PATH || "/"),
       __VUE_OPTIONS_API__: JSON.stringify(true),
       __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: JSON.stringify(false),
@@ -91,7 +97,13 @@ export default defineConfig({
       inject: "body",
       templateParameters: {
         PRECONNECT_LINKS: preconnect_links,
+        BASE_PATH: process.env.BASE_PATH || "/",
       },
+    }),
+    // Copy static public assets (favicon) into dist — HtmlRspackPlugin references
+    // them but does not emit them. Without this the favicon link 404s.
+    new rspack.CopyRspackPlugin({
+      patterns: [{ from: "public/favicon.svg", to: "favicon.svg" }],
     }),
     new ModuleFederationPlugin({
       name: "shell_host",
