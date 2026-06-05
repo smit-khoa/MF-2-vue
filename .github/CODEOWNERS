@@ -10,9 +10,9 @@
 /packages/shared-types/   @tech-lead
 
 # App ownership — each remote owned by its developer.
-/apps/home/        @dev-a
-/apps/ads_asset/   @dev-b
-/apps/shell/       @tech-lead
+/apps/adaccounts/    @dev-a
+/apps/ads-manager/   @dev-b
+/apps/shell/         @tech-lead
 
 # Build/CI config — lead review.
 /turbo.json              @tech-lead
