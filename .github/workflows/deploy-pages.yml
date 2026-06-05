@@ -33,7 +33,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 24 strips TypeScript natively — required to load the .ts rspack configs.
+          # (Node 20 throws ERR_UNKNOWN_FILE_EXTENSION on rspack.config.ts.)
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
