@@ -9,11 +9,15 @@ const project_dir = import.meta.dirname;
 const is_dev = process.env.NODE_ENV !== "production";
 const use_rsdoctor = process.env.RSDOCTOR === "true";
 
-const preconnect_links = app_names
-  .map(
-    (name) => `<link rel="preconnect" href="${app_urls[name]}" crossorigin />`
-  )
-  .join("\n    ");
+// Preconnect only helps cross-origin dev (remotes on other localhost ports). In prod
+// remotes are same-origin relative paths, so a preconnect to them is a no-op — emit none.
+const preconnect_links = is_dev
+  ? app_names
+      .map(
+        (name) => `<link rel="preconnect" href="${app_urls[name]}" crossorigin />`
+      )
+      .join("\n    ")
+  : "";
 
 const mf_remotes = Object.fromEntries(
   app_names.map((name) => [name, `${name}@${app_urls[name]}/mf-manifest.json`])
