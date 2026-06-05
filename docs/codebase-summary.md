@@ -15,7 +15,7 @@ smit-client-vue (root)
 └── packages/
     ├── shared-types (interfaces, ~60 LOC)
     ├── shared-store (Pinia stores + API client, ~400 LOC)
-    └── shared-ui (components + design system, ~300 LOC)
+    └── shared-ui (5 MF components + 24 shadcn-vue components + design system)
 ```
 
 **Total LOC (excluding node_modules):** ~3,200 (adaccounts demo added, compact, focused).
@@ -235,6 +235,8 @@ api_post<T>(url, body) → Promise<T>
 
 #### Components
 
+**MF custom components** (`components/`):
+
 | Component | LOC | Role |
 |-----------|-----|------|
 | **Icon.vue** | ~20 | `<Icon name="check" />` → renders sprite symbol |
@@ -242,8 +244,14 @@ api_post<T>(url, body) → Promise<T>
 | **SmitLoading.vue** | ~30 | Loading spinner (CSS animation) |
 | **RemoteLoadingFallback.vue** | ~25 | Suspense fallback (gray box + spinner) |
 | **RemoteErrorBoundary.vue** | ~60 | onErrorCaptured → retry button + error message |
-| **Button.vue** | ~40 | shadcn-vue + cva (polymorphic button) |
-| **Card.vue** | ~25 | shadcn-vue wrapper (border, shadow, padding) |
+
+**shadcn-vue components** (`components/ui/<name>/`, folder-per-component, added via `shadcn-vue` CLI):
+
+24 components grouped — core (button, card, input, label, badge, separator), form (select, checkbox, radio-group, switch, textarea, form), overlay (dialog, drawer, dropdown-menu, popover, tooltip, sonner, tabs), data (table, skeleton, avatar, pagination), layout (resizable).
+
+- Config: `components.json` (style `new-york`, Tailwind v4, `cssVariables`).
+- **Import convention inside ui/**: relative only (`../../../lib/utils`), NOT `@/` — because each app's rspack aliases `@`→app/src, so `@/` in shared-ui would break the consuming build. CLI-generated `@/` imports are rewritten to relative on add.
+- **Toast**: `<Toaster>` (sonner) imports `vue-sonner/style.css` itself (v2 no longer auto-bundles CSS); consumers mount `<Toaster />` once + call `toast()`.
 
 #### Design System
 
@@ -255,8 +263,8 @@ api_post<T>(url, body) → Promise<T>
 | **icons/sprite-symbols.ts** | ~2,500 LOC (compiled 90 lucide icons into single SVG) |
 | **icons/index.ts** | Exports SpriteProvider, sprite object |
 
-**LOC:** ~300 (excluding sprite-symbols.ts which is 2,500 generated)  
-**Dependencies:** reka-ui (Primitive), tailwindcss (utility classes), vue  
+**Dependencies:** reka-ui (primitives + Splitter), class-variance-authority, clsx, tailwind-merge, @radix-icons/vue, @vueuse/core, vee-validate + @vee-validate/zod + zod (form), vue-sonner (toast), @tanstack/vue-table (table), vaul-vue (drawer), vue  
+**Note:** all are MF singletons — every remote shares one instance; keep changes additive.  
 **Usage:** Imported by shell + remotes
 
 ---
@@ -351,8 +359,9 @@ shell (host)
   │   ├─ shared-types
   │   └─ pinia, vue
   ├─ shared-ui
-  │   ├─ reka-ui, lucide-vue-next (icons)
-  │   └─ tailwindcss
+  │   ├─ reka-ui (primitives + Splitter), @radix-icons/vue, SVG icon sprite
+  │   ├─ cva + clsx + tailwind-merge (cn helper)
+  │   └─ vee-validate/zod, vue-sonner, @tanstack/vue-table, vaul-vue, @vueuse/core
   ├─ shared-types
   ├─ vue, vue-router, pinia (eager shared)
   └─ remotes (adaccounts, ads-manager) lazy-load via MF

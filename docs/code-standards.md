@@ -565,6 +565,12 @@ import { useClickOutside } from '@/composables/use-click-outside';
 import { useClickOutside } from '../../../composables/use-click-outside';
 ```
 
+**Exception — `packages/shared-*` MUST use relative imports, never `@/`.** Each app's
+rspack aliases `@`→that app's `src/`, and shared packages are consumed from source by the
+app's build. An `@/lib/utils` inside `shared-ui` would resolve to `apps/<x>/src/lib/utils`
+(nonexistent) and break the build. shadcn-vue CLI generates `@/` imports — rewrite them to
+relative (`../../../lib/utils`) after `add`.
+
 ---
 
 ## Error Handling
