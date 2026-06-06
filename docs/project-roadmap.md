@@ -24,7 +24,7 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 - [x] Auth flow (gateway.smit.team integration)
 - [x] Role/feature gating (RemoteHost)
 - [x] Shared libraries (types, store, UI)
-- [x] Icon sprite system (90 lucide icons)
+- [x] Icon sprite system (96 lucide icons, generated from per-icon `.svg` sources)
 - [x] Bundle optimization (< 300KB)
 - [x] Turborepo (task caching, affected-graph builds)
 - [x] CI gate (GitHub Actions, Turbo typecheck + build on affected, branch protection)
@@ -61,7 +61,7 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 
 ### Known Limitations
 
-- No test suite (Vitest + Playwright planned Phase 2)
+- Test suite partial (Vitest live in shared-ui for data-grid range-copy; broader coverage + Playwright Phase 2)
 - No i18n (hardcoded English)
 - No dark mode (tokens prepared, design pending)
 - Remotes are placeholders (real features Phase 2+)
@@ -78,8 +78,8 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 
 - [ ] Port asset-sync from React baseline (Facebook Ads Manager integration)
 - [ ] Real CreateBusiness flow (form validation, API submission)
-- [ ] Data-table-v2 component (sortable, filterable, paginated)
-- [ ] Test suite (Vitest unit tests, Playwright e2e)
+- [x] Data-grid `Table` in shared-ui (virtualized, frozen, resize, sort, pagination, pivot, Excel-like range-copy)
+- [~] Test suite — Vitest set up in shared-ui (data-grid range-copy logic); broaden + add Playwright e2e
 - [ ] Error UI improvements (user-facing error messages + retry UX)
 
 ### Detailed Tasks
@@ -149,8 +149,11 @@ Tracking progress from Phase 1 (base platform) through Phase 4 (advanced feature
 
 #### 2.4 Test Suite Setup
 
+> Started: Vitest (jsdom) already configured in `@mf2/shared-ui` (`vitest.config.ts`) with the
+> data-grid range-copy unit tests. Remaining work below extends this to stores/forms + e2e.
+
 **Scope:**
-- Add Vitest + happy-dom + @vue/test-utils
+- Extend Vitest setup to apps + add @vue/test-utils for component tests
 - 20+ unit tests (auth-store initialization, hasRole/hasFeature, CreateBusinessForm validation)
 - 3 Playwright e2e tests (auth flow, remote load, navigation)
 
@@ -310,7 +313,7 @@ Target: Keep initial shell < 350KB, each remote < 150KB (lazy-load 2 remotes = ~
 
 ### Phase 2 Additions (Candidate)
 
-- Vitest (^1.0.0) — unit testing
+- Vitest (^2.1.8) — unit testing (already added to `@mf2/shared-ui` with jsdom)
 - @vue/test-utils (^2.4.0) — component testing
 - Playwright (^1.40.0) — e2e testing
 - Zod (^3.22.0) — schema validation (or Yup)
@@ -339,7 +342,7 @@ Target: Keep initial shell < 350KB, each remote < 150KB (lazy-load 2 remotes = ~
 
 ## Open Questions (Phase 2+)
 
-1. **Vitest vs Jest?** (Candidate: Vitest for faster startup, no JSDOM needed)
+1. ~~**Vitest vs Jest?**~~ **Resolved:** Vitest (jsdom) — adopted in `@mf2/shared-ui`.
 2. **Zod vs Yup?** (Candidate: Zod, smaller bundle, better TS support)
 3. **Posthog vs Mixpanel?** (TBD: depends on backend choice)
 4. **Service Worker framework?** (TBD: Workbox or custom)

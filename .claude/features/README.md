@@ -12,6 +12,7 @@ a feature spans api/components/pages/stores, so the doc is the map that re-assem
 | Role & feature gating | shell | /app/<remote> | — | — | disabled (prototype bypass) | [role-feature-gating](role-feature-gating.md) |
 | Remote loading & recovery | shell | /app/<remote> | — | — | done | [remote-loading-recovery](remote-loading-recovery.md) |
 | Quản lý TKQC — chế độ cơ bản | adaccounts | /app/adaccounts | — | — | done | [adaccounts-basic-mode](adaccounts-basic-mode.md) |
+| Data-grid Table (shared-ui) | n/a (packages/shared-ui) | n/a | — | — | done | [shared-ui-data-grid-table](shared-ui-data-grid-table.md) |
 
 ## Update discipline (MANDATORY)
 

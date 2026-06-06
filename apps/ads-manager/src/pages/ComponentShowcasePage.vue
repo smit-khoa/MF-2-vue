@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Showcase page: renders every shared shadcn-vue component group so the design
 // system can be eyeballed in one place. Standalone-only demo (imported by App.vue).
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import {
   // Layout / display
   Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction,
@@ -22,7 +22,9 @@ import {
   DropdownMenuSeparator, DropdownMenuItem, DropdownMenuCheckboxItem,
   // Navigation / data
   Tabs, TabsList, TabsTrigger, TabsContent,
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption,
+  // ui/table now ships the data-grid Table (virtualization, frozen cols, resize,
+  // custom-column, sort, pagination, row-select, totals). Demo'd below.
+  Table,
   Pagination, PaginationContent, PaginationFirst, PaginationPrevious,
   PaginationItem, PaginationEllipsis, PaginationNext, PaginationLast,
   // Feedback
@@ -45,11 +47,79 @@ const buttonVariants = ['default', 'secondary', 'destructive', 'outline', 'ghost
 const buttonSizes = ['sm', 'default', 'lg'] as const;
 const badgeVariants = ['default', 'secondary', 'destructive', 'outline'] as const;
 
-const tableRows = [
-  { id: 'CMP-001', name: 'Chiến dịch Tết 2026', status: 'Đang chạy', budget: '120.000.000đ' },
-  { id: 'CMP-002', name: 'Brand Awareness Q2', status: 'Tạm dừng', budget: '80.000.000đ' },
-  { id: 'CMP-003', name: 'Retargeting Web', status: 'Đang chạy', budget: '45.000.000đ' },
+// --- Data-grid (ui/table) demo -------------------------------------------------
+// Stress test: 10,000 rows × 100 columns to exercise row + column virtualization.
+// Column defs: width required; `frozen` pins to the left, `position` aligns content.
+const FIXED_COLUMNS = [
+  { field: 'id', name: 'Mã', width: 90, frozen: true },
+  { field: 'name', name: 'Tên chiến dịch', width: 220, frozen: true },
+  { field: 'status', name: 'Trạng thái', width: 130, position: 'center' as const },
+  { field: 'platform', name: 'Nền tảng', width: 140 },
+  { field: 'manager', name: 'Phụ trách', width: 160 },
+  { field: 'budget', name: 'Ngân sách', width: 150, position: 'right' as const },
+  { field: 'spent', name: 'Đã chi', width: 150, position: 'right' as const },
 ];
+
+// 93 generated metric columns -> 100 columns total.
+const METRIC_COUNT = 100 - FIXED_COLUMNS.length;
+const metricColumns = Array.from({ length: METRIC_COUNT }, (_, i) => ({
+  field: `metric_${i + 1}`,
+  name: `Chỉ số ${i + 1}`,
+  width: 120,
+  position: 'right' as const,
+}));
+const gridColumns = [...FIXED_COLUMNS, ...metricColumns];
+
+const statusPool = ['Đang chạy', 'Tạm dừng', 'Hoàn thành', 'Nháp'];
+const platformPool = ['Facebook', 'Google', 'TikTok', 'Zalo'];
+const managerPool = ['Lê An', 'Trần Bình', 'Nguyễn Cường', 'Phạm Dung', 'Vũ Em'];
+
+// 10,000 rows. Built once (not reactive) — heavy fixture for virtualization stress test.
+const gridData = Array.from({ length: 10_000 }, (_, i) => {
+  const budget = (50 + (i % 20) * 10) * 1_000_000;
+  const row: { id: string; [key: string]: any } = {
+    id: `CMP-${String(i + 1).padStart(5, '0')}`,
+    name: `Chiến dịch quảng cáo #${i + 1}`,
+    status: statusPool[i % statusPool.length],
+    platform: platformPool[i % platformPool.length],
+    manager: managerPool[i % managerPool.length],
+    budget,
+    spent: Math.round(budget * (0.3 + (i % 7) / 10)),
+  };
+  for (let m = 1; m <= METRIC_COUNT; m++) {
+    row[`metric_${m}`] = (i * 7 + m * 13) % 100000;
+  }
+  return row;
+});
+
+// Row selection: Table mutates this object's `selected` array by reference.
+const gridChecked = ref<{ selected: string[]; is_select_all: boolean }>({
+  selected: [],
+  is_select_all: false,
+});
+
+// Pagination state (client-side slice for the demo).
+const gridPaging = ref({ page: 1, limit: 25, total: gridData.length, has_next_page: gridData.length > 25 });
+const gridLoading = ref(false);
+
+const gridPageData = computed(() => {
+  const start = (gridPaging.value.page - 1) * gridPaging.value.limit;
+  return gridData.slice(start, start + gridPaging.value.limit);
+});
+
+function onGridChangePaging(e: { page: number; limit: number }) {
+  gridPaging.value.page = e.page;
+  gridPaging.value.limit = e.limit;
+  gridPaging.value.has_next_page = e.page * e.limit < gridData.length;
+}
+
+function onGridRefresh() {
+  gridLoading.value = true;
+  setTimeout(() => (gridLoading.value = false), 800);
+}
+
+const vndFormatter = new Intl.NumberFormat('vi-VN');
+const fmtVnd = (n: number) => `${vndFormatter.format(n)}đ`;
 </script>
 
 <template>
@@ -307,33 +377,50 @@ const tableRows = [
         </Tabs>
       </section>
 
-      <!-- ============ TABLE ============ -->
+      <!-- ============ DATA-GRID TABLE ============ -->
       <section>
-        <h2 class="mb-3 text-xl font-semibold">Table</h2>
-        <Table>
-          <TableCaption>Danh sách chiến dịch quảng cáo.</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mã</TableHead>
-              <TableHead>Tên chiến dịch</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead class="text-right">Ngân sách</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="row in tableRows" :key="row.id">
-              <TableCell class="font-medium">{{ row.id }}</TableCell>
-              <TableCell>{{ row.name }}</TableCell>
-              <TableCell>
-                <Badge :variant="row.status === 'Đang chạy' ? 'default' : 'secondary'">
-                  {{ row.status }}
-                </Badge>
-              </TableCell>
-              <TableCell class="text-right">{{ row.budget }}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+        <h2 class="mb-3 text-xl font-semibold">Data-grid Table</h2>
+        <p class="mb-3 text-sm text-muted-foreground">
+          Stress test <strong>10.000 dòng × 100 cột</strong> — row + column virtualization,
+          cột đóng băng (Mã + Tên), kéo giãn cột, tùy chỉnh cột, sắp xếp, chọn dòng, dòng tổng,
+          phân trang. Đã chọn:
+          <strong>{{ gridChecked.selected.length }}</strong> dòng · trang
+          <strong>{{ gridPaging.page }}</strong> / {{ Math.ceil(gridData.length / gridPaging.limit) }}.
+        </p>
+        <p class="mb-3 text-sm text-muted-foreground">
+          <strong>Sao chép kiểu Excel:</strong> kéo chọn vùng ô (hoặc click vào tiêu đề cột để chọn cả cột),
+          giữ Ctrl/Cmd để chọn nhiều vùng, rồi nhấn <kbd>Cmd/Ctrl + C</kbd> để sao chép sang Excel/Sheets.
+        </p>
+        <div class="h-[460px]">
+          <Table
+            :data="gridPageData"
+            :columns="gridColumns"
+            :paging="gridPaging"
+            :checked-config="gridChecked"
+            :loading="gridLoading"
+            :table_info="{ name: 'campaigns', key_id: 'id' }"
+            :tools="['refresh', 'custom-column', 'zoom']"
+            show-checkbox
+            show-total
+            is-border
+            stripe
+            enable-range-select
+            @change-paging="onGridChangePaging"
+            @refresh="onGridRefresh"
+          >
+            <!-- Custom cell: status badge -->
+            <template #status="{ value }">
+              <Badge :variant="value === 'Đang chạy' ? 'default' : value === 'Tạm dừng' ? 'secondary' : value === 'Hoàn thành' ? 'outline' : 'destructive'">
+                {{ value }}
+              </Badge>
+            </template>
+            <!-- Custom cell: money formatting -->
+            <template #budget="{ value }">{{ fmtVnd(value) }}</template>
+            <template #spent="{ value }">{{ fmtVnd(value) }}</template>
+          </Table>
+        </div>
       </section>
+
 
       <!-- ============ PAGINATION ============ -->
       <section>

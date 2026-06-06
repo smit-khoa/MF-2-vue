@@ -456,7 +456,7 @@ optimization: {
 
 - **Vue:** treeshake=true by default (SFC compiler includes used components only)
 - **Tailwind:** Scoped CSS (unused utilities not included in build)
-- **Lucide icons:** Sprite-compiled (~2.5KB per icon, 90 icons = ~225KB, but inlined as one SVG)
+- **Lucide icons:** Sprite-compiled (96 icons inlined as one SVG, no runtime fetch). Source = per-icon `.svg` files in `shared-ui/src/icons/svg/`; `pnpm generate:icons` builds `sprite-symbols.ts` (sprite string + `IconName` type). Splitting source into per-icon files does NOT change bundle/runtime — output is the same single inlined sprite
 
 ### Remote Lazy-Loading
 

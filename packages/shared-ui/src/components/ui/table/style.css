@@ -1,0 +1,1106 @@
+/* Table Component Styles */
+
+.data-grid-container {
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--background);
+    position: relative;
+}
+
+/* Đảm bảo các cell có width cố định */
+.row-cell,
+.header-cell,
+.filter-cell {
+    flex-shrink: 0;
+}
+
+.header-option {
+    opacity: 0;
+}
+
+.header-cell:hover {
+    .header-option {
+        opacity: 1;
+    }
+}
+
+/* Đảm bảo nội dung trong tất cả cell đều có ellipsis */
+.row-cell *,
+.header-cell *,
+.filter-cell * {
+    max-width: 100%;
+}
+
+/* Đặc biệt cho các text element */
+.row-cell p,
+.row-cell span,
+.row-cell div,
+.header-cell span,
+.header-cell div {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 70%;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.data-size-label,
+.filter-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.data-size-select,
+.filter-input {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--background);
+}
+
+.data-size-select:focus,
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent);
+}
+
+.loading-indicator {
+    color: var(--primary);
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+/* Buttons */
+
+.freeze-bulk-btn,
+.unfreeze-all-btn,
+.apply-color-btn,
+.clear-color-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.freeze-bulk-btn:hover,
+.unfreeze-all-btn:hover,
+.apply-color-btn:hover,
+.clear-color-btn:hover {
+    background: var(--muted);
+    border-color: var(--primary);
+}
+
+.freeze-bulk-btn:disabled,
+.unfreeze-all-btn:disabled,
+.apply-color-btn:disabled,
+.clear-color-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Frozen Controls */
+.frozen-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.frozen-count {
+    font-size: 12px;
+    color: var(--muted-foreground);
+    margin-left: 8px;
+}
+
+/* Color Highlighting Controls */
+.color-highlighting-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.highlight-label,
+.condition-label,
+.value-label,
+.color-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.highlight-select,
+.condition-select,
+.value-input,
+.color-select {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    background: var(--background);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: color-mix(in oklab, var(--background) 90%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--muted);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-subtitle {
+    color: var(--muted-foreground);
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+/* Content */
+.data-grid-content {
+    position: relative;
+    display: flex;
+    /* height: 500px; */
+
+    flex: 1;
+    min-height: 0;
+}
+
+.data-grid-content.loading {
+    pointer-events: none;
+}
+
+/* Sidebar */
+.data-grid-sidebar {
+    width: 250px;
+    min-width: 250px;
+    border-right: 1px solid var(--border);
+    background: var(--muted);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+}
+
+.sidebar-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.column-search {
+    width: 100%;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.sidebar-sections {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar-section {
+    border-bottom: 1px solid var(--border);
+}
+
+.section-header {
+    padding: 12px 16px;
+    background: var(--muted);
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-icon {
+    font-size: 16px;
+}
+
+.drop-zone {
+    min-height: 60px;
+    padding: 12px 16px;
+    background: var(--background);
+}
+
+.field-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 2px;
+    cursor: move;
+}
+
+.field-icon {
+    font-size: 14px;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    color: var(--destructive);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    margin-left: 4px;
+}
+
+.drop-hint {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    text-align: center;
+    padding: 20px;
+}
+
+.available-columns {
+    padding: 12px 16px;
+}
+
+.column-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 13px;
+    cursor: move;
+}
+
+.column-icon {
+    font-size: 14px;
+    color: var(--muted-foreground);
+}
+
+/* Main Grid */
+.data-grid-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: auto; /* Thay đổi từ hidden thành auto để hỗ trợ scroll */
+    position: relative; /* Thêm position relative */
+}
+
+/* Header */
+.grid-header-container {
+    /* border-bottom: 1px solid var(--border); */
+
+    position: sticky; /* Thay đổi thành sticky để header luôn hiển thị */
+    top: 0; /* Đảm bảo header ở đầu */
+    z-index: 10;
+    background: var(--background);
+    /* border: 1px solid var(--border); */
+    /* border-bottom: none; */
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    height: 50px;
+    min-height: 50px;
+}
+
+.grid-header {
+    overflow: hidden;
+    background: var(--background);
+}
+.grid-header::-webkit-scrollbar {
+    display: none;
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.header-row {
+    display: flex;
+    background: var(--muted);
+    border-bottom: 1px solid var(--border);
+    min-width: fit-content;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.header-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--muted-foreground);
+    /* Match the row cells' separator so header columns are visibly divided. */
+    border-right: 1px solid var(--border-table);
+    background: var(--muted);
+    user-select: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+/* Đảm bảo text trong header có ellipsis */
+.header-cell > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+    margin-right: 8px; /* Khoảng cách với buttons */
+}
+
+.header-cell.frozen-column {
+    position: sticky;
+    /* background: var(--muted); */
+    z-index: 10;
+}
+
+.checkbox-cell {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    justify-content: center;
+}
+
+.group-header,
+.group-cell {
+    /* width: 200px !important;
+  min-width: 200px !important; */
+}
+.filter-row {
+    display: flex;
+    background: var(--background);
+}
+
+.filter-cell {
+    padding: 8px;
+    border-right: 1px solid var(--border);
+    background: var(--background);
+}
+
+.filter-cell.frozen-column {
+    position: sticky;
+    background: var(--muted);
+    z-index: 10;
+}
+
+.filter-input-small {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Buttons in header */
+.freeze-btn,
+.sort-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+    font-size: 14px;
+    margin-left: 4px;
+}
+
+.freeze-btn:hover,
+.sort-btn:hover {
+    background: var(--muted);
+}
+
+.freeze-icon {
+    font-size: 12px;
+}
+
+.sort-icon {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.sort-icon.sort-asc {
+    transform: rotate(180deg);
+}
+
+.sort-icon.sort-desc {
+    transform: rotate(0deg);
+}
+
+/* Column resizer */
+.column-resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background-color 0.2s;
+}
+
+.column-resizer:hover {
+    background: var(--primary);
+    width: 6px;
+}
+
+.column-resizer:active {
+    background: var(--primary);
+    width: 6px;
+}
+
+/* Tooltip cho column-resizer */
+.column-resizer::after {
+    /* content: "Double click to reset";
+    position: absolute;
+    top: -30px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 1000; */
+}
+
+.column-resizer:hover::after {
+    opacity: 1;
+}
+
+/* Body */
+.grid-body {
+    flex: 1;
+    overflow: visible; /* Thay đổi từ auto thành visible vì scroll đã chuyển lên data-grid-main */
+    position: relative;
+}
+
+.grid-content {
+    position: relative;
+}
+
+.grid-row {
+    display: flex;
+    /* border-top: 1px solid var(--border); */
+    background: var(--background);
+    transition: background-color 0.2s;
+
+    &:first-child {
+        border-top: none;
+    }
+}
+
+.grid-row:hover {
+    /* background: var(--muted); */
+}
+
+.grid-row.selected {
+    background: var(--accent) !important;
+}
+
+.grid-row.group-row {
+    background: var(--muted);
+    font-weight: 600;
+}
+
+/* Row alternating colors */
+.grid-row.row-odd {
+    background: var(--muted);
+}
+
+.grid-row.row-even {
+    background: var(--background);
+}
+
+/* Row hover background intentionally disabled (no colour change on hover). */
+
+.grid-row.row-odd.selected .row-cell {
+    background: var(--accent) !important;
+}
+
+.grid-row.row-even.selected .row-cell {
+    background: var(--accent) !important;
+}
+
+.row-cell {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-right: 1px solid var(--border-table);
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0; /* Quan trọng cho flexbox ellipsis */
+    border-top: 1px solid var(--border-table);
+    position: relative;
+}
+
+.row-cell:has(.cell-custom) {
+    overflow: visible;
+    padding: 0;
+}
+
+.cell-custom:hover .cell-custom-content {
+    height: 200%;
+    animation: slide-up 0.7s ease-in-out;
+    border: 1px solid var(--secondary);
+}
+
+.cell-custom-content {
+    width: 100%;
+    height: 100%;
+    transition: height 0.2s;
+    border: 1px solid var(--border);
+}
+
+@keyframes slide-up {
+    0% {
+        height: 100%;
+        border: 1px solid var(--border);
+    }
+    80% {
+        height: 100%;
+        border: 1px solid var(--border);
+    }
+    100% {
+        height: 200%;
+        border: 1px solid var(--secondary);
+    }
+}
+
+.grid-row:hover {
+    /* Lift a hovered row above sibling rows (for cell-custom slide-up overlay),
+       but keep it BELOW the sticky header (z-index 10) and footer-sum so those
+       stay on top while scrolling. */
+    z-index: 5;
+}
+
+/* Đảm bảo nội dung trong cell có ellipsis */
+.row-cell > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+}
+
+/* Đặc biệt cho các cell có nội dung phức tạp */
+.row-cell .avatar-cell,
+.row-cell .actions-cell,
+.row-cell .progress-cell,
+.row-cell .rating-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    width: 100%;
+}
+
+/* Đảm bảo text trong các cell phức tạp cũng có ellipsis */
+.row-cell .avatar-name,
+.row-cell .progress-text,
+.row-cell .rating-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* CSS cho các cell đặc biệt trong demo */
+.avatar-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.avatar-image {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.avatar-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+}
+
+.actions-cell {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+}
+
+.action-btn {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: var(--muted);
+    border-color: var(--primary);
+}
+
+.progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--muted);
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s;
+}
+
+.progress-text {
+    font-size: 11px;
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+    min-width: 30px;
+    text-align: right;
+}
+
+.rating-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stars {
+    color: #ffc107;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.rating-value {
+    font-size: 11px;
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+}
+
+.row-cell.frozen-column {
+    position: sticky;
+    background: inherit;
+    z-index: 10;
+}
+
+.checkbox-cell {
+    justify-content: center;
+}
+
+.group-cell {
+    background: var(--muted);
+}
+
+.group-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.expand-icon {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.expand-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.group-label {
+    font-weight: 600;
+}
+
+/* Color highlighting */
+.highlight-red {
+    background-color: #ffebee !important;
+}
+.highlight-green {
+    background-color: #e8f5e8 !important;
+}
+.highlight-blue {
+    background-color: #e3f2fd !important;
+}
+.highlight-yellow {
+    background-color: #fff8e1 !important;
+}
+.highlight-purple {
+    background-color: #f3e5f5 !important;
+}
+.highlight-orange {
+    background-color: #fff3e0 !important;
+}
+.highlight-pink {
+    background-color: #fce4ec !important;
+}
+.highlight-cyan {
+    background-color: #e0f2f1 !important;
+}
+
+/* Footer */
+.grid-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--muted);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    gap: 16px;
+}
+
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 160px;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.context-menu-item:hover {
+    background: var(--muted);
+}
+
+.menu-icon {
+    font-size: 14px;
+}
+
+.context-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+}
+
+/* Scrollbar styling - Cập nhật để áp dụng cho data-grid-main */
+.data-grid-main::-webkit-scrollbar,
+.grid-header::-webkit-scrollbar,
+.grid-body::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.data-grid-main::-webkit-scrollbar-track,
+.grid-header::-webkit-scrollbar-track,
+.grid-body::-webkit-scrollbar-track {
+    background: var(--muted);
+}
+
+.data-grid-main::-webkit-scrollbar-thumb,
+.grid-header::-webkit-scrollbar-thumb,
+.grid-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.data-grid-main::-webkit-scrollbar-thumb:hover,
+.grid-header::-webkit-scrollbar-thumb:hover,
+.grid-body::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+}
+
+.border-top-none {
+    border-top: none !important;
+}
+
+/* mới */
+
+/* Group row improvements */
+.group-cell-full {
+    border-right: none !important;
+    cursor: pointer;
+    padding: 0 !important;
+}
+
+.group-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    width: 100%;
+    padding: 8px 0;
+    font-weight: 600;
+    color: var(--foreground);
+    height: 100%;
+}
+
+.group-content:hover {
+    /* background-color: rgba(0, 0, 0, 0.05); */
+    /* border-radius: 4px; */
+}
+
+.group-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--foreground);
+}
+
+/* Data row with indent */
+.data-row-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 2px 0;
+}
+
+/* Group row styling */
+.grid-row.group-row {
+    /* background: var(--muted) !important; */
+    /* border-left: 3px solid var(--primary); */
+    font-weight: 600;
+    cursor: pointer;
+    /* Thêm border-top để tạo hiệu ứng phân cách rõ ràng hơn */
+    /* border-top: 2px solid var(--border); */
+}
+
+/* Style khác cho group con level 1 */
+.grid-row.group-row[data-level="1"] {
+    /* background: var(--muted) !important; */
+    /* border-top: 1px solid var(--border); */
+}
+
+/* Style khác cho group con level 2 trở lên */
+.grid-row.group-row[data-level="2"],
+.grid-row.group-row[data-level="3"] {
+    /* background: var(--border) !important; */
+    /* border-top: 1px solid var(--border); */
+}
+
+.grid-row.group-row:hover {
+    /* background: var(--muted) !important; */
+}
+
+/* Remove borders from group row cells */
+.grid-row.group-row .row-cell {
+    border-right: none !important;
+}
+
+/* Child data rows styling */
+.grid-row[data-level] {
+    position: relative;
+}
+
+/* Improve group expand/collapse icon */
+.group-content svg {
+    color: var(--muted-foreground);
+    transition: all 0.2s ease;
+}
+
+.group-content:hover svg {
+    color: var(--primary);
+}
+
+/* Style for empty group state */
+.group-content.empty {
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* Enhance checkbox alignment in grouped rows */
+.row-cell.checkbox-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.border-r-group::before {
+    content: "";
+    position: absolute;
+    right: 20px;
+    width: 10000px;
+    height: 1px;
+    top: -1px;
+    background-color: var(--border);
+}
+
+.border-r-group::after {
+    content: "";
+    position: absolute;
+    right: 20px;
+    width: 10000px;
+    height: 1px;
+    bottom: -1px;
+    background-color: var(--border);
+}
+
+.border-right-end-group::after {
+    content: "";
+    position: absolute;
+    right: 19px;
+    width: 10000px;
+    height: 1px;
+    bottom: -1px;
+    background-color: var(--border);
+}
+
+/* ── Range selection highlight (Excel-like copy) ─────────────────
+   Painted onto the real cell background, not a floating overlay. Uses a SOLID
+   blended colour (color-mix with --background, no alpha) so overlapping frozen +
+   scrollable cells never stack their transparency, and frozen cells stay pinned
+   on scroll (native sticky DOM). !important overrides the inline `background`
+   that getCellBackground sets on stripe/frozen cells. */
+.row-cell.range-cell {
+    background: color-mix(in oklab, var(--primary) 16%, var(--background)) !important;
+}
+
+.row-cell.range-cell.range-cell--primary {
+    background: color-mix(in oklab, var(--primary) 24%, var(--background)) !important;
+}
+
+/* Header cells of selected columns share the same tint as the body cells. */
+.header-cell.range-col {
+    background: color-mix(in oklab, var(--primary) 16%, var(--background)) !important;
+    color: var(--foreground);
+}
+
+.header-cell.range-col.range-col--primary {
+    background: color-mix(in oklab, var(--primary) 24%, var(--background)) !important;
+}
+
+/* Floating copy/settings buttons anchored at the active range corner. */
+.range-actions {
+    position: absolute;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    pointer-events: auto;
+    z-index: 12;
+    user-select: none;
+}
+
+.range-actions__btn {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.range-actions__btn:hover {
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+/* Header cells double as column-select handles when range-select is on. */
+.header-cell.range-col-handle {
+    cursor: cell;
+}

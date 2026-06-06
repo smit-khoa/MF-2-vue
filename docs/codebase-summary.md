@@ -253,6 +253,15 @@ api_post<T>(url, body) → Promise<T>
 - **Import convention inside ui/**: relative only (`../../../lib/utils`), NOT `@/` — because each app's rspack aliases `@`→app/src, so `@/` in shared-ui would break the consuming build. CLI-generated `@/` imports are rewritten to relative on add.
 - **Toast**: `<Toaster>` (sonner) imports `vue-sonner/style.css` itself (v2 no longer auto-bundles CSS); consumers mount `<Toaster />` once + call `toast()`.
 
+**Data-grid `Table` (`components/ui/table/`)** — the shadcn table primitives were replaced by a
+virtualized data-grid (`Table.vue`, ~3.8k LOC: 2-axis virtualization, frozen columns, resize,
+custom-column, sort, pagination, row-select, pivot). `index.ts` exports only `Table`. Excel-like
+**range-select + copy** is opt-in via `enableRangeSelect` (default false → zero regression on the
+singleton): cell-background highlight, header column-handle, multi-range, auto-scroll, Cmd+C → TSV,
+localStorage column presets, picker. Logic split into `composables/` (`use-range-copy`,
+`range-copy-presets`, `use-table-range-selection`, `range-coords`, `use-range-copy-flow`) with vitest
+unit tests in `composables/__tests__/`. Feature map: `.claude/features/shared-ui-data-grid-table.md`.
+
 #### Design System
 
 | File | Role |
@@ -260,8 +269,10 @@ api_post<T>(url, body) → Promise<T>
 | **lib/utils.ts** | `cn()` helper (merge Tailwind classes) |
 | **lib/colors.ts** | Design tokens (oklch, semantic colors) |
 | **icons/sprite-provider.ts** | Injects SVG sprite via provide/inject |
-| **icons/sprite-symbols.ts** | ~2,500 LOC (compiled 90 lucide icons into single SVG) |
-| **icons/index.ts** | Exports SpriteProvider, sprite object |
+| **icons/sprite-symbols.ts** | AUTO-GENERATED — single inlined SVG sprite + `IconName` type + `ICON_NAMES` (96 icons). Never edit by hand |
+| **icons/svg/** | Per-icon source files (`<name>.svg`, one per icon). Edit these, not the generated output |
+| **scripts/generate-icons.mjs** | Regenerates `sprite-symbols.ts` from `icons/svg/`. Run `pnpm generate:icons` after adding/removing an icon |
+| **icons/index.ts** | Exports SpriteProvider, Icon, ICON_NAMES, IconName |
 
 **Dependencies:** reka-ui (primitives + Splitter), class-variance-authority, clsx, tailwind-merge, @radix-icons/vue, @vueuse/core, vee-validate + @vee-validate/zod + zod (form), vue-sonner (toast), @tanstack/vue-table (table), vaul-vue (drawer), vue  
 **Note:** all are MF singletons — every remote shares one instance; keep changes additive.  
@@ -417,7 +428,9 @@ ads-manager (remote)
 
 ## Known Technical Debt
 
-1. **No tests:** Tests planned for Phase 2 (Vitest + Playwright)
+1. **Tests partial:** Vitest set up in `@mf2/shared-ui` (jsdom) — covers the data-grid range-copy
+   pure logic (`composables/__tests__/`, 34 tests). No suite yet in other packages; Playwright e2e
+   still planned for Phase 2.
 2. **No i18n:** English only; vue-i18n integration planned if needed
 3. **No dark mode:** Theme tokens exist; awaiting design spec
 4. **Limited error UI:** Generic API error messages (security precaution)
@@ -425,6 +438,6 @@ ads-manager (remote)
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** 2026-06-04  
-**Scope:** Phase 1 complete, Phase 2 planning underway
+**Document Version:** 1.1  
+**Last Updated:** 2026-06-06  
+**Scope:** Phase 1 complete, Phase 2 planning underway; shared-ui data-grid + range-copy + vitest landed

@@ -621,12 +621,17 @@ export async function fetchBusinesses(): Promise<Business[] | null> {
 
 ---
 
-## Testing (Future Standard)
+## Testing
 
-When tests are added (Phase 2+):
+**Live:** `@mf2/shared-ui` runs Vitest (jsdom) via `pnpm --filter @mf2/shared-ui test`. Config:
+`packages/shared-ui/vitest.config.ts` (`environment: "jsdom"`, `include: src/**/*.test.ts`); `*.test.ts`
+excluded from `vue-tsc` in that package's `tsconfig.json`. Current coverage: data-grid range-copy pure
+logic (`components/ui/table/composables/__tests__/`). Other packages: manual only (Phase 2 broadens this).
+
+**Future standard** (pattern to follow as coverage grows — Pinia store + Playwright e2e still pending):
 
 ```typescript
-// Vitest + happy-dom for unit tests
+// Vitest + jsdom for unit tests
 describe('useAuthStore', () => {
   it('should initialize and fetch businesses', async () => {
     const auth = useAuthStore();

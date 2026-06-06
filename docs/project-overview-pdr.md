@@ -143,7 +143,7 @@ SMIT Agency Client is a production-grade micro-frontend platform (Vue 3) serving
 
 ## Known Limitations
 
-1. **No test suite yet:** Manual testing only. Plan: add Vitest + Playwright in Phase 2.
+1. **Test suite partial:** Vitest (jsdom) set up in `@mf2/shared-ui` covering the data-grid range-copy pure logic; other packages still manual-only. Plan: broaden Vitest coverage + add Playwright e2e in Phase 2.
 2. **No i18n:** Hardcoded English. Plan: add vue-i18n if multi-language required.
 3. **No dark mode:** Tailwind theme (oklch) supports future dark variant; design tokens in shared-ui/lib/colors.ts.
 4. **Limited error messages:** API errors logged generically (security: no leak sensitive data). Plan: user-facing error UI in Phase 2.

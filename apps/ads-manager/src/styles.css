@@ -26,6 +26,9 @@
   --input: oklch(0.25 0.015 250);
   --ring: oklch(0.72 0.19 150);
   --radius: 0.75rem;
+  /* data-grid (shared-ui table) tokens */
+  --border-table: var(--border);
+  --button-secondary-bg-hover: var(--accent);
 }
 
 @theme inline {
